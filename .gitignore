@@ -1,0 +1,11 @@
+# Google API 金鑰——絕對不進 git
+js/config.js
+
+# Python / macOS / 編輯器
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.vscode/
+*.swp
+*.swo
