@@ -16,8 +16,8 @@
 
 /* ── CSS 變數 ─────────────────────────────────────────────── */
 :root {
-  /* 主題色（Task8 淺色主題；導覽列 / 品牌卡保留 --c-primary 深色）*/
-  --c-primary:     #1F2A5C;   /* 品牌深藍：導覽列 / 航班飯店卡 */
+  /* 主題色（Task8 淺色主題；Task11 導覽列 / 航班飯店卡已轉淺色）*/
+  --c-primary:     #1F2A5C;   /* 品牌深藍：品牌色定義（保留；T8 overlay 解耦硬編碼沿用）*/
   --c-bg:          #F5F6F8;   /* 主背景：淺色近白（Task8 淺色主題）*/
   --c-accent:      #4D7CF4;   /* 強調填充色：選中 pill / 按鈕底（配白字）*/
   --c-accent-text: #2E5BCC;   /* 文字用深階 accent（淺底 AA ≥4.5:1）*/
@@ -31,8 +31,8 @@
   --safe-l: env(safe-area-inset-left,   0px);
   --safe-r: env(safe-area-inset-right,  0px);
 
-  /* 底部導覽列總高度：icon 區固定 56px + home bar safe-area */
-  --nav-h: calc(56px + var(--safe-b));
+  /* 底部導覽列總高度：icon 區固定 60px + home bar safe-area（Task11 放大後內容 ~58px，調至 60px）*/
+  --nav-h: calc(60px + var(--safe-b));
 }
 
 
@@ -135,8 +135,9 @@ body {
 
   display: flex;
   align-items: stretch;
-  background-color: var(--c-primary);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);   /* 深底分隔線解耦：--c-divider 翻淺後在深底隱形 */
+  background-color: #FFFFFF;   /* N1：比 --c-bg #F5F6F8 亮一階，自然形成區隔 */
+  border-top: 1px solid var(--c-divider);   /* N2：淺底可見分隔線（替換深底白色系）*/
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);   /* N2：向上淺陰影，增加層次感 */
   /* iOS home bar 安全區（env safe-area-inset-bottom）*/
   padding-bottom: var(--safe-b);
 }
@@ -156,14 +157,15 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  color: #7A8DB8;   /* 導覽列解耦（2-C）：--c-primary 深底，硬編碼原灰藍值維持可讀 */
+  color: var(--c-text-muted);   /* N3：淺底主題全域變數（Task11 導覽列轉淺後移除深底硬編碼）*/
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;   /* 消除 300ms 點擊延遲 */
   transition: color 0.12s ease;
 }
 
 .nav-btn.active {
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* N4：淺底文字對比紀律（--c-accent 3.5:1 AA 不過，改用深階）*/
+  font-weight: 700;
 }
 
 .nav-btn:active {
@@ -172,14 +174,14 @@ body {
 
 /* 導覽圖示 */
 .nav-icon {
-  font-size: 24px;
+  font-size: 28px;   /* N5：24px → 28px（emoji 靠 font-size 放大）*/
   line-height: 1;
   user-select: none;
 }
 
 /* 導覽文字標籤 */
 .nav-label {
-  font-size: 10px;
+  font-size: 12px;   /* N6：10px → 12px */
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -697,7 +699,7 @@ body {
 .trip-flight-card {
   margin: 14px 12px 0;
   padding: 18px 16px;
-  background-color: var(--c-primary);
+  background-color: #FFFFFF;   /* T2：深藍 → 白底（Task11 淺色化；與導覽列同亮階邏輯）*/
   border-radius: 16px;
   border: 1px solid var(--c-divider);
 }
@@ -707,7 +709,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* T4：accent 文字對比紀律（11px 文字改用深階）*/
   margin-bottom: 10px;
 }
 
@@ -737,7 +739,7 @@ body {
   align-items: stretch;
   gap: 0;
   margin-bottom: 16px;
-  background-color: rgba(0, 0, 0, 0.20);
+  background-color: rgba(0, 0, 0, 0.04);   /* T7：深卡內深區 0.20 → 淺卡 A5 量級 0.04 */
   border-radius: 12px;
   overflow: hidden;
 }
@@ -789,7 +791,7 @@ body {
 .trip-hotel-card {
   margin: 14px 12px 0;
   padding: 18px 16px;
-  background-color: var(--c-primary);
+  background-color: #FFFFFF;   /* T3：深藍 → 白底（Task11 淺色化）*/
   border-radius: 16px;
   border: 1px solid var(--c-divider);
 }
@@ -843,7 +845,7 @@ body {
   min-height: 44px;
   font-size: 18px;
   font-weight: 600;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* T5：accent 文字對比紀律（18px 連結改用深階）*/
   text-decoration: none;
 }
 
@@ -1195,54 +1197,6 @@ body {
 }
 
 
-/* ════════════════════════════════════════════════════════════
-   Task8 — B1 A9：深藍品牌卡內文字解耦
-   trip-flight-card / trip-hotel-card 保留 --c-primary 深底，
-   但卡內所有文字 / 分隔線原本引用會翻轉的全域變數，需硬編碼為白色系
-   ════════════════════════════════════════════════════════════ */
-
-.trip-flight-card .trip-flight-no,
-.trip-flight-card .trip-flight-endpoint {
-  color: #F0F4FF;   /* A9：深藍卡主文字白色系 */
-}
-
-.trip-flight-card .trip-flight-date,
-.trip-flight-card .trip-flight-arrow-label {
-  color: #B0BDD8;   /* A9：深藍卡次要文字灰藍 */
-}
-
-.trip-flight-card .trip-flight-note {
-  color: #B0BDD8;
-  border-top-color: rgba(255, 255, 255, 0.10);   /* A9：divider 在深卡上 */
-}
-
-.trip-flight-card,
-.trip-hotel-card {
-  border-color: rgba(255, 255, 255, 0.12);   /* A9：dark-bg 上的 divider 邊框 */
-}
-
-.trip-hotel-card .trip-hotel-name,
-.trip-hotel-card .trip-hotel-address-ja {
-  color: #F0F4FF;   /* A9：深藍卡主文字白色系 */
-}
-
-.trip-hotel-card .trip-hotel-dates,
-.trip-hotel-card .trip-hotel-address-zh {
-  color: #B0BDD8;   /* A9：深藍卡次要文字 */
-}
-
-.trip-hotel-card .trip-hotel-note {
-  color: #B0BDD8;
-  background: rgba(255, 255, 255, 0.06);   /* A9：深卡內 note 區 */
-}
-
-/* 深藍卡內的大字鈕：保留原白色系按鈕樣式（A6 的全域改法不適用於深卡內）*/
-.trip-flight-card .trip-btn-bigtext,
-.trip-hotel-card .trip-btn-bigtext {
-  background-color: rgba(255, 255, 255, 0.10);
-  color: #F0F4FF;
-}
-
 
 /* ════════════════════════════════════════════════════════════
    Task8 — B2 常用句分類 chips 導覽
@@ -1254,6 +1208,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
+  flex-shrink: 0;   /* U2：防 flex column 壓縮（overflow-x:auto 使 min-height 歸 0，列表高時被壓成一線）*/
   background-color: var(--c-bg);
   border-bottom: 1px solid var(--c-divider);
   padding: 8px 12px;

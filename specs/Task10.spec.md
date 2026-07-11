@@ -4,6 +4,8 @@
 > 理由：本任務改 `css/style.css` 與 `js/trip-tab.js`，Task8 正在大改 style.css（主題翻轉）——同檔並行必衝突。
 > 本 spec 所有樣式工作**以 Task8 完成後的 style.css 為基礎**（淺色主題、:root 變數翻轉後的狀態），字級與版面不得與 Task8 剛定案的淺色配色打架。
 > Task8 完成後 `CACHE_VERSION` 預期為 `v6`；本任務 bump 為**開工時實際值 +1**（預期 v6 → v7）。
+> **依賴閘更新（2026-07-11，PM）：Task11（導覽列淺色化＋chips 裁切修復）插隊本任務之前，同樣改 `css/style.css`——本任務必須等 Task11 閉環後才可進 SA**（`Task10.ready` 已收回，Task11 閉環後 PM 重建）。CACHE_VERSION 順延為 Task11 後的實際值 +1（預期 v7→v8）。
+> **依賴閘解除（2026-07-11，PM）：Task8 與 Task11 皆已正式閉環，本任務所有依賴閘解除，`Task10.ready` 已重建，SA 可開工。** 開工基礎 = Task11 閉環後的 style.css（導覽列/航班/飯店卡已淺色化、A9 深底 override 已刪、`--nav-h` 現為 60px、`.phrases-chips-bar` 已有 flex-shrink:0——本任務不得動這些）；`CACHE_VERSION` 現況實際值 = `v7`，本任務 bump 為 v8。
 
 ## 模組：行程分頁（js/trip-tab.js・css/style.css）
 

@@ -9,7 +9,7 @@
 tokyo-trip/
 ├── index.html              ✅ Task1–3,8  App shell：iOS meta、分頁容器、載入所有 js（Task2 加 tts/bigtext/phrases-tab、Task3 加 import-data/trip-tab，順序定死；Task8 狀態列 black-translucent→default、theme-color→#F5F6F8）
 ├── css/
-│   └── style.css           ✅ Task1–3,8  全站樣式（直式 iPhone、safe-area；Task2 加常用句/大字 overlay；Task3 加 trip 分頁 8 視覺區塊：pill 導覽/日卡/航班卡/飯店卡/重要資料/私人段/匯入匯出區/暫時提示；Task8 淺色主題：:root 變數翻轉＋新增 --c-accent-text、硬編碼破口 A1–A10 全清、overlay/導覽列深底解耦、.phrases-chips-* 分類 chips 樣式）
+│   └── style.css           ✅ Task1–3,8,11  全站樣式（直式 iPhone、safe-area；Task2 加常用句/大字 overlay；Task3 加 trip 分頁 8 視覺區塊：pill 導覽/日卡/航班卡/飯店卡/重要資料/私人段/匯入匯出區/暫時提示；Task8 淺色主題：:root 變數翻轉＋新增 --c-accent-text、硬編碼破口 A1–A10 全清、overlay 深底解耦、.phrases-chips-* 分類 chips 樣式；Task11 導覽列淺色化＋放大（#nav-bar 白底、--nav-h 60px、icon 28px/label 12px）、航班/飯店卡淺色化（A9 深底 override 整塊刪除）、.phrases-chips-bar 加 flex-shrink:0）
 ├── js/
 │   ├── app.js              ✅ Task1  分頁切換框架、SW 註冊、共用工具（Task2 未改本體，showTab 被 bigtext.js 外掛 wrap）
 │   ├── config.example.js   ✅        金鑰模板（上 git）
@@ -24,7 +24,7 @@ tokyo-trip/
 │   ├── coupon-viewer.js    ✅ Task4  券圖檢視器 overlay（App.openCouponViewer/closeCouponViewer；O1 additive wrap、O3 z-index 110、pinch/pan/雙擊、壞圖文案）
 │   ├── coupons-tab.js      ✅ Task4  折價券分頁（registerTab('coupons',{onShow})；冪等；分類分組渲染；點卡→openCouponViewer）
 │   └── api.js              ⬜ Task5/6 Google Translation + Vision 呼叫
-├── sw.js                   ✅ Task1–4,8  Service Worker：cache-first 離線快取（必須在根目錄，scope 才涵蓋全站；現況 CACHE_VERSION='v6'（Task8 bump，PRECACHE_URLS 零增刪），PRECACHE_URLS 含 Task2 三新檔＋Task3 兩新檔＋Task4 兩 js＋16 張券圖）
+├── sw.js                   ✅ Task1–4,8,11  Service Worker：cache-first 離線快取（必須在根目錄，scope 才涵蓋全站；現況 CACHE_VERSION='v7'（Task11 bump，PRECACHE_URLS 零增刪），PRECACHE_URLS 含 Task2 三新檔＋Task3 兩新檔＋Task4 兩 js＋16 張券圖）
 ├── manifest.webmanifest    ✅ Task8  PWA manifest（standalone、portrait、圖示；Task8 background_color/theme_color 改 #F5F6F8，與 index.html theme-color、:root --c-bg 三處一致）
 ├── icons/                  ✅        icon-192 / icon-512 / apple-touch-icon
 ├── img/
@@ -72,7 +72,8 @@ tokyo-trip/
 - **tripdata.js 是單檔雙契約**：`window.TRIP`（Task3 消費、schema 見 Task3.api.md）＋ `window.COUPONS`（Task4 消費）同住一檔。任一 Task 動此檔都波及另一 Task；且檔名不變、內容變更也必須 bump CACHE_VERSION 才會生效（cache-first 吃住舊資料，頁面不壞、症狀隱蔽）。
 - **匯入碼格式 `TT1.<base64(UTF-8 JSON)>` 是跨界契約（Task3 起）**：權威定義在 `Task3.api.md`——它是 repo 外「電腦端真實匯入碼生成器」唯一能對齊的文件。解析端容忍 URL-safe base64 變體；中文必走 TextEncoder/TextDecoder。改格式 = 已發出的真實匯入碼作廢。
 - **localStorage key 登記與清除紀律（Task3 起）**：`tokyotrip.lastTab`（Task1/app.js）、`tokyotrip.privateData`（Task3/import-data.js）；Task4 零新增 key；`tokyotrip.phrasesCat`（Task8/phrases-tab.js，分類記憶，值＝分類 id，壞值 fallback PHRASES[0]，讀寫包 try/catch 私密瀏覽降級）。**任何模組的「清除」只准 removeItem 自己的 key，全 repo 禁用 `localStorage.clear()`**——誤用會跨 Task 毀資料。
-- **主題變數與深色元件的解耦紀律（Task8 起）**：`:root` 主題變數（`--c-bg`/`--c-text`/`--c-text-muted`/`--c-divider`）自 Task8 翻轉為淺色語意；**維持深底的元件（`.bigtext-*`、`.cv-*` 兩 overlay，及任何保留品牌深藍底的卡片/導覽列）不得引用這些會翻轉的變數**，須用區域性硬編碼色值。後續 Task5/6 新 overlay（深底展示型）同樣適用——引用全域文字變數＝淺色主題下自動壞掉。`--c-primary`/`--c-accent` 為品牌色不翻轉，可安全引用；但 `--c-accent` 當**文字**用在淺底對比僅約 3.5:1，文字場景須用深階 accent 變數 `--c-accent-text`（#2E5BCC，Task8 定案，≥4.5:1）。
+- **`.tab-section` flex 子項壓縮風險（Task11 SA 發現，永續紀律）**：`.tab-section` 是 `display:flex; flex-direction:column` 的固定高度捲動容器。**任何分頁若在 section 內放多個直接子元素（工具列＋內容區模式），非內容區的子元素必須設 `flex-shrink: 0`**——否則內容高於容器時會被 flex 壓縮（若該子元素帶 overflow-x:auto，自動最小高度歸 0，可被壓到近乎不見；Task11 U2 chips bar 裁切即此因）。修法已落地（Task11 閉環）：`.phrases-chips-bar` 已設 `flex-shrink: 0`。現況唯一多子元素分頁 = 常用句（chips bar＋list area）；trip/coupons 為唯一子元素容器不受影響；Task5/6 新分頁做工具列時同樣適用。
+- **主題變數與深色元件的解耦紀律（Task8 起；Task11 閉環後深底清單收斂為僅 `.bigtext-*`/`.cv-*` 兩 overlay——導覽列與航班/飯店卡已轉淺色、回歸全域變數）**：`:root` 主題變數（`--c-bg`/`--c-text`/`--c-text-muted`/`--c-divider`）自 Task8 翻轉為淺色語意；**維持深底的元件（現況僅 `.bigtext-*`、`.cv-*` 兩 overlay）不得引用這些會翻轉的變數**，須用區域性硬編碼色值（合法硬編碼殘留：`#7A8DB8` ×2—bigtext:429 + cv:1534）。後續 Task5/6 新 overlay（深底展示型）同樣適用——引用全域文字變數＝淺色主題下自動壞掉。`--c-primary`/`--c-accent` 為品牌色不翻轉，可安全引用；但 `--c-accent` 當**文字**用在淺底對比僅約 3.5:1，文字場景須用深階 accent 變數 `--c-accent-text`（#2E5BCC，Task8 定案，≥4.5:1）。
 - **`App.privateData`（Task3 首建）**：trip 分頁專用（get/save/clear，簽名見 Task3.api.md），非跨 Task 共用元件；命名已占用 `window.App`，後續 Task 避讓。
 - **多 overlay 並存紀律（Task4 定案，Task5/6 繼承）**：additive wrap 疊加（每個 overlay 元件各自 wrap `App.showTab`，必須 call-through 前一層）＋同分頁互斥責任在開啟方；z-index 分帶：導覽列 10、bigtext 100、coupon-viewer 110、Task5/6 新 overlay 從 120 起跳。**同一分頁內先後開兩種 overlay**（Task6 相機預覽→OCR 大字最可能踩）時，開啟方須先關前一個；bigtext.js 無公開 close API，屆時需回報 PM 補簽名。全文見 `Task4.impact.md` O1–O4。
 - **viewport 沒有 user-scalable=no（易誤設假設）**：index.html viewport 允許頁面縮放。任何自訂手勢 overlay（Task4 檢視器起）須自行抑制頁面縮放（雙指 preventDefault＋gesturestart），**不得改全域 viewport meta**（波及全站已驗收頁面）。
