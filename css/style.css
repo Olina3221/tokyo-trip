@@ -1635,3 +1635,237 @@ body {
   padding: 24px;
   pointer-events: none;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   Task5 — 翻譯分頁（translate tab）
+   DOM 由 js/translate-tab.js 動態渲染；class 名由 Task5.api.md 定案
+   注意：本節禁止引用 --fs-* type scale（Task10 授權僅 .trip-*；
+         本頁字級全部硬編碼，不得用 var(--fs-*)）。
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 主容器（.tab-section 的直接 flex 子元素）───────────────── */
+.translate-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  padding-bottom: 32px;   /* iOS home bar 留白 + 底部空氣 */
+}
+
+/* ── 輸入區（Task11 紀律：flex-shrink:0，非主捲動區不得被壓縮）─ */
+.translate-input-area {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── 方向列（label + 切換鈕並排）────────────────────────────── */
+.translate-dir-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 當前方向文字（例「中文 → 日文」）*/
+.translate-dir-label {
+  font-size: 15px;   /* hardcode，不用 --fs-* */
+  font-weight: 700;
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
+}
+
+/* 方向切換按鈕（觸控目標 ≥44px）*/
+.translate-dir-toggle {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 18px;
+  background: rgba(77, 124, 244, 0.12);
+  border: 1px solid rgba(77, 124, 244, 0.30);
+  border-radius: 22px;
+  color: var(--c-accent-text);
+  font-size: 14px;   /* hardcode */
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.translate-dir-toggle:active {
+  opacity: 0.65;
+}
+
+/* ── 輸入框（font-size ≥16px 硬編碼；iOS 聚焦不縮放紅線）──────── */
+/* 絕對不得改用 --fs-md 或任何 --fs-* 變數（Task10 授權僅 .trip-*）*/
+.translate-textarea {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  border: 2px solid var(--c-divider);
+  border-radius: 12px;
+  background-color: #FFFFFF;
+  color: var(--c-text);
+  font-size: 17px;   /* ≥16px，iOS 聚焦不縮放（硬編碼，禁用 --fs-*）*/
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.55;
+  resize: none;
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
+  transition: border-color 0.15s ease;
+}
+
+.translate-textarea::placeholder {
+  color: var(--c-text-muted);
+  opacity: 0.5;
+  font-size: 14px;   /* hardcode，placeholder 小字 */
+}
+
+.translate-textarea:focus {
+  outline: none;
+  border-color: var(--c-accent-text);   /* Task8 對比紀律 */
+  background-color: rgba(77, 124, 244, 0.04);
+}
+
+/* ── 字數列（字數提示 + 超限紅字）──────────────────────────── */
+.translate-char-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.translate-char-count {
+  font-size: 12px;   /* hardcode */
+  color: var(--c-text-muted);
+}
+
+/* 超過上限時顯示的紅字（JS 控制 display；與 Task11 A8 #C63A3A 同值）*/
+.translate-char-error {
+  font-size: 12px;   /* hardcode */
+  font-weight: 600;
+  color: #C63A3A;   /* A8：可辨識不刺眼的深紅（Task11 同值）*/
+}
+
+/* ── 翻譯送出按鈕（觸控目標 ≥44px，全寬大按鈕）────────────────── */
+.translate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 14px;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  font-size: 17px;   /* hardcode */
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease;
+}
+
+.translate-btn:active:not(:disabled) {
+  opacity: 0.7;
+}
+
+.translate-btn:disabled {
+  background-color: rgba(77, 124, 244, 0.35);
+  cursor: default;
+}
+
+/* ── 結果區（JS 控制 display:none / ''；flex-shrink:0 防壓縮）── */
+.translate-result-area {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px;
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  border: 1px solid var(--c-divider);
+}
+
+/* 翻譯結果文字（日文字要夠大好讀；hardcode，不用 --fs-*）*/
+.translate-result-text {
+  font-size: 20px;   /* hardcode；日文大字易讀 */
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.55;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  margin: 0;
+}
+
+/* ── 動作鈕列（大字/播音/複製；flex-wrap 換行）─────────────── */
+.translate-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* 動作鈕共用樣式（觸控目標 ≥44px；hardcode，不用 --fs-*）*/
+.translate-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;   /* hardcode */
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.translate-action-btn:active {
+  opacity: 0.65;
+}
+
+.translate-action-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 大字鈕：主 accent 填充白字（重量感最強，給店員看用）*/
+.translate-bigtext-btn {
+  background-color: var(--c-accent);
+  color: #ffffff;
+}
+
+/* 播音鈕：accent 淡底深字 */
+.translate-speak-btn {
+  background-color: rgba(77, 124, 244, 0.12);
+  color: var(--c-accent-text);
+  border: 1px solid rgba(77, 124, 244, 0.28);
+}
+
+/* 複製鈕：中性深色 tint（常規操作，不搶眼）*/
+.translate-copy-btn {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: var(--c-text);
+}
+
+/* ── 錯誤訊息區（JS 控制 display:none / ''；flex-shrink:0）─────
+   深紅 #C63A3A = Task11 A8 同值；淡紅底不刺眼，可辨識        */
+.translate-error {
+  flex-shrink: 0;
+  padding: 14px 16px;
+  background-color: rgba(198, 58, 58, 0.08);
+  border: 1px solid rgba(198, 58, 58, 0.25);
+  border-radius: 12px;
+  font-size: 15px;   /* hardcode，不用 --fs-* */
+  color: #C63A3A;
+  line-height: 1.55;
+}

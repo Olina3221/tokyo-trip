@@ -48,9 +48,15 @@ window.APP_CONFIG = {
 };
 ```
 
-> `js/config.js` 已被 `.gitignore` 排除，不會上傳 GitHub。
+> `js/config.js` 已納入版控、隨站部署到 GitHub Pages（自 Task5 起）。
+> 金鑰安全靠 Google Cloud Console 的兩層限制：
+> - HTTP 參照網址限制 = `olina3221.github.io/*`
+> - API 限制 = Cloud Translation + Cloud Vision
 >
-> **安全提醒**：若部署到 GitHub Pages（公開網址），Google Cloud Console 請設定「HTTP 參照網址限制」，將金鑰限定只接受你的 GitHub Pages 網域，避免金鑰被濫用。
+> 金鑰可隨時在 Google Cloud Console 重新產生作廢。
+>
+> **金鑰輪替 SOP**：修改 `js/config.js` 內的金鑰值 → bump `sw.js` 的 `CACHE_VERSION` → 部署 → 使用者 reload 兩次後生效。
+> （過渡期間：舊金鑰作廢後、SW 更新前，翻譯功能可能暫時出現 403 錯誤，reload 兩次即恢復。）
 
 ---
 
@@ -81,7 +87,7 @@ Task2–6 每次新增或修改任何 app shell 檔案，必須同時更新 `sw.
    ```
 3. 提交並部署；使用者重新整理兩次後即取得新版快取，舊快取名自動刪除。
 
-> **禁止**：`js/config.js` 永遠不得加入快取清單（含 PRECACHE_URLS 與動態回填）。
+> `js/config.js` 自 Task5 起已在 PRECACHE_URLS 內，內容變更（金鑰輪替）同樣走 bump SOP。
 
 ---
 
@@ -102,7 +108,7 @@ tokyo-trip/
 ├── js/
 │   ├── app.js              分頁框架、SW 註冊
 │   ├── config.example.js   金鑰模板（上 git）
-│   ├── config.js           真實金鑰（gitignored，自行複製填入）
+│   ├── config.js           真實金鑰（納入版控、隨站部署；受 referer＋API 限制保護）
 │   ├── phrases.js          常用句庫（Task2）
 │   └── tripdata.js         行程/折價券資料（Task3/4）
 ├── sw.js                   Service Worker（根目錄，scope 涵蓋全站）

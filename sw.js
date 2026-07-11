@@ -10,13 +10,11 @@
  *   3. 部署；使用者重新整理兩次後即取得新版
  *
  * ── 禁止項目 ────────────────────────────────────────────────
- * - js/config.js 不得列入 PRECACHE_URLS（A3）
- * - js/config.js 也不得進入動態快取回填（A3，fetch handler 已明確排除）
  * - make_icons.py、specs/ 不得列入快取
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v9';
+var CACHE_VERSION = 'v10';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -56,8 +54,11 @@ var PRECACHE_URLS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  // Task5（A2 SOP）：金鑰版控化（config.js 自 Task5 起納入 PRECACHE，A3 禁令廢止）＋翻譯模組
+  './js/config.js',
+  './js/api.js',
+  './js/translate-tab.js',
 ];
-// NOTE：js/config.js 不在此清單（gitignored，部署後可能不存在，金鑰不得進快取）
 
 // ─── install：逐檔預快取，單檔失敗不炸整個 install（A4）────
 self.addEventListener('install', function (event) {
@@ -91,24 +92,9 @@ self.addEventListener('activate', function (event) {
   );
 });
 
-// ─── fetch：cache-first；config.js 強制 network-only（A3）──
+// ─── fetch：cache-first（POST 直通，不快取；googleapis 呼叫須用 POST）──
 self.addEventListener('fetch', function (event) {
-  var url = event.request.url;
-
-  // A3：config.js 完全不快取（預快取 + 動態回填兩路均排除）
-  if (url.indexOf('js/config.js') !== -1) {
-    event.respondWith(
-      fetch(event.request).catch(function () {
-        // 離線且無快取：回傳空 config，保持 window.APP_CONFIG 未定義（合法）
-        return new Response('/* config offline */', {
-          headers: { 'Content-Type': 'application/javascript' },
-        });
-      })
-    );
-    return;
-  }
-
-  // 只處理 GET
+  // 只處理 GET（POST 直通，保證 googleapis 翻譯／OCR 呼叫不進快取）
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
