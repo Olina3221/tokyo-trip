@@ -6,6 +6,8 @@
 > Task8 完成後 `CACHE_VERSION` 預期為 `v6`；本任務 bump 為**開工時實際值 +1**（預期 v6 → v7）。
 > **依賴閘更新（2026-07-11，PM）：Task11（導覽列淺色化＋chips 裁切修復）插隊本任務之前，同樣改 `css/style.css`——本任務必須等 Task11 閉環後才可進 SA**（`Task10.ready` 已收回，Task11 閉環後 PM 重建）。CACHE_VERSION 順延為 Task11 後的實際值 +1（預期 v7→v8）。
 > **依賴閘解除（2026-07-11，PM）：Task8 與 Task11 皆已正式閉環，本任務所有依賴閘解除，`Task10.ready` 已重建，SA 可開工。** 開工基礎 = Task11 閉環後的 style.css（導覽列/航班/飯店卡已淺色化、A9 深底 override 已刪、`--nav-h` 現為 60px、`.phrases-chips-bar` 已有 flex-shrink:0——本任務不得動這些）；`CACHE_VERSION` 現況實際值 = `v7`，本任務 bump 為 v8。
+> **依賴閘更新（2026-07-12，PM）：Task9（常用句內容整理）插隊本任務之前**（Olina 拍板「接著做 9、10」；兩任務檔案零交集但都 bump `sw.js`，依序執行）——**本任務等 Task9 閉環後才進 SA**（`Task10.ready` 已收回，Task9 閉環後 PM 重建）。CACHE_VERSION 順延為 Task9 後的實際值 +1（預期 v8→v9）。
+> **依賴閘解除（2026-07-12，PM）：Task9 已正式閉環，本任務所有依賴閘（Task8/Task11/Task9）全部解除，`Task10.ready` 已重建，SA 可開工。** 開工基礎不變（Task11 閉環後的 style.css 紀律照舊）；phrases.js 現為 39 句與本任務零交集；`CACHE_VERSION` 現況實際值 = `v8`，本任務 bump 為 v9。
 
 ## 模組：行程分頁（js/trip-tab.js・css/style.css）
 
@@ -138,3 +140,35 @@ style.css 中 `.trip-*` 各區塊字級散落 10px–26px 二十餘個硬編碼�
 - Backend 完成後輸出 `Task10.api.md`，建 `Task10.backend_done`。
 - Frontend 依 api.md＋impact.md 完成樣式，建 `Task10.done`。
 - QA 依上方驗收重點測試。
+
+---
+
+## 影響範圍分析（SA）
+
+> 全文見 `specs/Task10.impact.md`（2026-07-12），此處摘要。
+
+### 受影響的既有功能
+| 功能 | 頁面 / 函式 | 影響說明 | 需迴歸測試 |
+|------|------------|---------|-----------|
+| 行程子區塊日卡展開/收合 | trip-tab.js `buildItinerarySection` | 整段重構為兩層視圖；B8 展開邏輯與「範圍外展開 Day1」fallback 一併廢止（範圍外落總覽） | ✅ |
+| 航班/飯店/重要資料子區塊 | buildFlights/Hotel/Important | JS 零變更；CSS 只動字級（Task11 顏色錨定 impact §4 逐點防回退） | ✅ |
+| Pill 切換＋B6 冪等 | buildPills／onShow | 零變更；R2 兩層住 `#trip-sec-itinerary` 內部，pill 不感知內層視圖，狀態存記憶體跨分頁保留 | ✅ |
+| 其他四分頁＋導覽列＋overlay | 全站 | `--fs-*` 放 `:root` 但只授權 `.trip-*` 引用，未引用即零作用；`.bigtext-*`/`.cv-*` 零 diff | ✅ |
+| 離線快取 | sw.js | 實測現值 v8 → bump **v9**；PRECACHE 零增刪 | ✅ |
+
+### Backend 注意事項
+- 只動 `js/trip-tab.js`（狀態機 `_itinView`、兩層 DOM、返回/前後天/disabled、今日進入點）＋ `sw.js` 一行；四個既有 build 函式零變更；輸出 `Task10.api.md`。
+- 捲動歸零目標是 `#tab-trip`（`.tab-section` 為 fixed 捲動容器，`tabEl.scrollTop=0`）；單日層非互動列不留 `role="button"`/`aria-expanded`。
+
+### Frontend 注意事項
+- R1 實測 43 處硬編碼（<13px 共 9 處），逐條歸階表見 impact §2；其中 5 處隨 R2 退場，**以 backend api.md 最終 DOM 為準施工**；孤兒刪除僅限 impact §5 白名單。
+- `.trip-import-textarea` 計算字級必須 ≥16px（iOS 聚焦縮放紅線）；day-nav 建議不做 sticky（與 `.trip-pills` sticky 疊撞，impact §3.4）。
+- Task11 顏色錨定 P1–P8（#FFFFFF 兩卡、accent-text、--nav-h 60px、#7A8DB8 計數=2、.phrases-* 零 diff）碰都不碰。
+- ⚠F1：spec 表使 important-tel 22→17、hotel-name 26→19、flight-no 24→22 三處變小——照表施工＋記回報，QA 截圖存證交 Olina 流程外驗收。
+
+### QA 迴歸測試清單
+- [ ] impact §6 機械判準 1–12 全部執行（.trip-* 無硬編碼 font-size、變數 scope、孤兒白名單、Task11 防回退、js 零變更清單、sw.js v9 單行）
+- [ ] R2：總覽五卡／點入正確／單日 detail 全展開／首末日 disabled／空天文案／B6 視圖保留
+- [ ] 當日快捷 mock 日期雙情境（期間內直落單日層＋今天 badge；期間外落總覽不進 Day1）
+- [ ] Task1–4/8/9/11 全功能迴歸＋冷 install＋隱私掃描三段式
+- 新功能由 QA 依 spec 驗收

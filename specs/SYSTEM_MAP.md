@@ -9,22 +9,22 @@
 tokyo-trip/
 ├── index.html              ✅ Task1–3,8  App shell：iOS meta、分頁容器、載入所有 js（Task2 加 tts/bigtext/phrases-tab、Task3 加 import-data/trip-tab，順序定死；Task8 狀態列 black-translucent→default、theme-color→#F5F6F8）
 ├── css/
-│   └── style.css           ✅ Task1–3,8,11  全站樣式（直式 iPhone、safe-area；Task2 加常用句/大字 overlay；Task3 加 trip 分頁 8 視覺區塊：pill 導覽/日卡/航班卡/飯店卡/重要資料/私人段/匯入匯出區/暫時提示；Task8 淺色主題：:root 變數翻轉＋新增 --c-accent-text、硬編碼破口 A1–A10 全清、overlay 深底解耦、.phrases-chips-* 分類 chips 樣式；Task11 導覽列淺色化＋放大（#nav-bar 白底、--nav-h 60px、icon 28px/label 12px）、航班/飯店卡淺色化（A9 深底 override 整塊刪除）、.phrases-chips-bar 加 flex-shrink:0）
+│   └── style.css           ✅ Task1–3,8,11,10  全站樣式（直式 iPhone、safe-area；Task2 加常用句/大字 overlay；Task3 加 trip 分頁 8 視覺區塊：pill 導覽/日卡/航班卡/飯店卡/重要資料/私人段/匯入匯出區/暫時提示；Task8 淺色主題：:root 變數翻轉＋新增 --c-accent-text、硬編碼破口 A1–A10 全清、overlay 深底解耦、.phrases-chips-* 分類 chips 樣式；Task11 導覽列淺色化＋放大（#nav-bar 白底、--nav-h 60px、icon 28px/label 12px）、航班/飯店卡淺色化（A9 深底 override 整塊刪除）、.phrases-chips-bar 加 flex-shrink:0；Task10 :root 五階 type scale 變數（--fs-xl/lg/md/sm/xs=22/19/17/15/13px，僅 .trip-* 授權）＋.trip-* 字級全數變數化（F1 三處 override：hotel-name/important-tel/flight-no 維持 xl=22）＋總覽層（.trip-itin-overview/.trip-ov-card）與單日層（.trip-itin-day/.trip-day-nav-*）版面＋.trip-item 重構為 grid（54px 1fr）＋孤兒樣式退場（.trip-day-card/header/label/date/theme/chevron/body、.trip-item-header/chevron/detail[hidden] 全刪））
 ├── js/
 │   ├── app.js              ✅ Task1  分頁切換框架、SW 註冊、共用工具（Task2 未改本體，showTab 被 bigtext.js 外掛 wrap）
 │   ├── config.example.js   ✅        金鑰模板（上 git）
 │   ├── config.js           ✅        真實金鑰（gitignored，載入須容錯）
-│   ├── phrases.js          ✅ Task8  常用句庫（Task2 消費；Task8 每分類加 `id` 欄位—greetings/dining/shopping/transport/hotel/emergency，41 句內容零增刪）
+│   ├── phrases.js          ✅ Task8,9  常用句庫（Task2 消費；Task8 每分類加 `id` 欄位—greetings/dining/shopping/transport/hotel/emergency；Task9 內容整理：移除 11 句國民基本用語＋新增 9 句實用句，現況 39 句（4/9/9/6/5/6），greetings 顯示名 cat 改「溝通・語言」（id 不變））
 │   ├── tripdata.js         ✅ Task3–4  行程/航班/飯店/重要資料/折價券資料（單檔雙契約：TRIP=Task3 已換真實資料（schema 見 Task3.api.md，含 isoDate、無 members）、COUPONS=Task4 已換 16 筆真實券資料（schema 見 Task4.api.md：id/store/category/discount/expiry/passport/notes/area/img）；檔頭有隱私警告）
 │   ├── tts.js              ✅ Task2  日文語音共用模組（App.speak；Task5 重用）
 │   ├── bigtext.js          ✅ Task2  大字展示共用元件（App.showBigText；Task5/6 重用）
 │   ├── phrases-tab.js      ✅ Task2,8  常用句分頁（registerTab('phrases')；Task8 重構為分類 chips 導覽：一次只顯示一類、預設 transport、localStorage `tokyotrip.phrasesCat` 記憶、壞值 fallback PHRASES[0]、空分類 chip 不渲染）
 │   ├── import-data.js      ✅ Task3  匯入碼解析/localStorage 存取（App.privateData：get/getRawCode/save/clear/isAvailable）
-│   ├── trip-tab.js         ✅ Task3  行程分頁（registerTab('trip')，四子區塊 pill 導覽；onShow 冪等）
+│   ├── trip-tab.js         ✅ Task3,10  行程分頁（registerTab('trip')，四子區塊 pill 導覽；onShow 冪等；Task10 行程子區塊重構為兩層視圖狀態機：總覽層 .trip-itin-overview（五張精簡日卡，整卡可點）⇄ 單日層 .trip-itin-day（頂部導覽：返回總覽/前後天切換首末日 disabled；時間軸 detail 直接展開非互動）；closure 變數 _itinView 存記憶體禁 localStorage、跨分頁切回保留（B6）；init 今日 isoDate 對上某天直進單日層＋今天 badge，對不上停總覽（舊 B8「範圍外展開 Day1」fallback 廢止）；切換捲動歸零 #tab-trip；四個既有 build 函式（Flights/Hotel/Important/Pills）零變更）
 │   ├── coupon-viewer.js    ✅ Task4  券圖檢視器 overlay（App.openCouponViewer/closeCouponViewer；O1 additive wrap、O3 z-index 110、pinch/pan/雙擊、壞圖文案）
 │   ├── coupons-tab.js      ✅ Task4  折價券分頁（registerTab('coupons',{onShow})；冪等；分類分組渲染；點卡→openCouponViewer）
 │   └── api.js              ⬜ Task5/6 Google Translation + Vision 呼叫
-├── sw.js                   ✅ Task1–4,8,11  Service Worker：cache-first 離線快取（必須在根目錄，scope 才涵蓋全站；現況 CACHE_VERSION='v7'（Task11 bump，PRECACHE_URLS 零增刪），PRECACHE_URLS 含 Task2 三新檔＋Task3 兩新檔＋Task4 兩 js＋16 張券圖）
+├── sw.js                   ✅ Task1–4,8,11,9,10  Service Worker：cache-first 離線快取（必須在根目錄，scope 才涵蓋全站；現況 CACHE_VERSION='v9'（Task10 bump，PRECACHE_URLS 零增刪），PRECACHE_URLS 含 Task2 三新檔＋Task3 兩新檔＋Task4 兩 js＋16 張券圖）
 ├── manifest.webmanifest    ✅ Task8  PWA manifest（standalone、portrait、圖示；Task8 background_color/theme_color 改 #F5F6F8，與 index.html theme-color、:root --c-bg 三處一致）
 ├── icons/                  ✅        icon-192 / icon-512 / apple-touch-icon
 ├── img/
@@ -67,7 +67,7 @@ tokyo-trip/
 - **`App.showBigText` / `App.speak` 是跨 Task 契約（Task2 首建）**：簽名以 `Task2.api.md` 定案為準，Task5（翻譯結果）/ Task6（OCR 結果，僅 ja）直接引用，改簽名 = 雙 Task 返工。`showBigText` 僅 `ja` 必填；`speak` 可用性語意 = speechSynthesis 存在（不綁 ja voice）。
 - **`App.showTab` 被 bigtext.js 外掛 wrap**（Task2 起）：切分頁自動關 overlay 是 wrap 出來的行為（app.js 本體未改）。之後任何 Task 動到分頁切換行為時，須連 wrap 一起考慮；Task5/6 呼叫 showTab 會連帶關 overlay（文件化於 Task2.api.md）。
 - **語音走 iOS 內建 speechSynthesis（已拍板，離線免金鑰）**：不用 Google Cloud TTS，`api.js`（Task5/6）不含 TTS。iOS voices 非同步/GC/cancel-race 等坑的處理集中在 tts.js，Task5 不得繞過 tts.js 自己叫 speechSynthesis。
-- **`window.PHRASES` 資料契約（Task2 起被消費）**：phrases-tab.js 唯讀消費 `phrases.js` 的資料結構（分類含 `id`（Task8 起，chips 導覽與 phrasesCat 記憶依賴）+ 句子 ja/zh/romaji 欄位），缺/空時顯示失敗文案不壞頁。改 phrases.js 資料結構或分類 id = 波及 phrases-tab.js 渲染與使用者已存的分類記憶。Task9（句子增/刪/改）動此檔時分類 id 不得改名。
+- **`window.PHRASES` 資料契約（Task2 起被消費）**：phrases-tab.js 唯讀消費 `phrases.js` 的資料結構（分類含 `id`（Task8 起，chips 導覽與 phrasesCat 記憶依賴）+ 句子 ja/zh/romaji 欄位），缺/空時顯示失敗文案不壞頁。改 phrases.js 資料結構或分類 id = 波及 phrases-tab.js 渲染與使用者已存的分類記憶。Task9 已依此紀律完成內容整理（六分類 id 全保留，僅 greetings 的顯示名 cat 改「溝通・語言」）；後續任何句子增/刪/改同樣不得改分類 id。
 - **資料隱私分層是 repo 級永續硬約束（Task3 起）**：repo 內容 = 公開部署內容。公開層（git 追蹤檔全部，含 specs/、DEVELOPMENT_LOG、commit message）禁任何個資真值（護照/保單/訂位代號/姓名/手機）；本機層 = localStorage `tokyotrip.privateData`（匯入碼原字串）。QA 每輪隱私掃描為三段式：工作樹 grep＋**repo 內 `TT1.` 字串 base64 解碼後再 grep**（base64 是純 grep 的盲區）＋git log -p。真值清單由 PM 流程外提供。
 - **tripdata.js 是單檔雙契約**：`window.TRIP`（Task3 消費、schema 見 Task3.api.md）＋ `window.COUPONS`（Task4 消費）同住一檔。任一 Task 動此檔都波及另一 Task；且檔名不變、內容變更也必須 bump CACHE_VERSION 才會生效（cache-first 吃住舊資料，頁面不壞、症狀隱蔽）。
 - **匯入碼格式 `TT1.<base64(UTF-8 JSON)>` 是跨界契約（Task3 起）**：權威定義在 `Task3.api.md`——它是 repo 外「電腦端真實匯入碼生成器」唯一能對齊的文件。解析端容忍 URL-safe base64 變體；中文必走 TextEncoder/TextDecoder。改格式 = 已發出的真實匯入碼作廢。
@@ -79,6 +79,7 @@ tokyo-trip/
 - **viewport 沒有 user-scalable=no（易誤設假設）**：index.html viewport 允許頁面縮放。任何自訂手勢 overlay（Task4 檢視器起）須自行抑制頁面縮放（雙指 preventDefault＋gesturestart），**不得改全域 viewport meta**（波及全站已驗收頁面）。
 - **PRECACHE 重量前向成本（Task4 起）**：`cache.add` 不走 SW 自身 fetch handler → 每次 bump CACHE_VERSION，18 張券圖（4–7MB）全部重新下載。Task5/6/7 每次 bump 都付此成本（行前家用 wifi 可接受）；若圖量再增長，屆時開 Task 做「install 先從舊快取搬運」優化。
 - **precache 失敗的隱蔽性與 QA 冷 install 驗法（Task4 起）**：A4 單檔失敗不炸 install＋動態回填會聯手掩蓋「某張券圖沒進 precache」——線上開過一次頁就回填，離線測試假陽性。QA 離線驗收必須冷 install（清站點資料→重 install 期間不開該分頁→離線→驗全量）。
+- **type scale 變數紀律（Task10 落地，永續紀律）**：`:root` 的五階字級變數 `--fs-xl/lg/md/sm/xs`（22/19/17/15/13px，下限 13px）**只授權 `.trip-*` 區塊引用**（Task10 已完成 .trip-* 全數變數化，QA 驗證零硬編碼殘留、零越界）——其他分頁（導覽列/常用句/折價券/overlay）的硬編碼字級是「尚未收斂」的既定狀態，不是破口，不得順手改；未來各分頁字級收斂屬獨立 Task，逐 Task 擴大授權。機械判準：`var(--fs-` 出現在非 `.trip-*` 規則＝越界。F1 三處 Olina 意圖 override（.trip-hotel-name/.trip-important-tel/.trip-flight-no 皆 xl=22px，CSS comment 標注「Olina 意圖：維持醒目」）是合法偏離 spec 表格值的定案，後續 Task 不得「順手歸階」。另 `.trip-import-textarea` 計算字級恆須 ≥16px（iOS 聚焦自動縮放紅線，Task3 起既有約束、Task10 歸階後實測 17px 通過）。
 - **iOS localStorage 兩坑（Task3 文案已對應，Task7 真機驗）**：(1) Safari 分頁與加入主畫面的 standalone APP 不共用 localStorage——匯入必須在 APP 內做；(2) iOS 儲存壓力可能清除網站資料，本機層非永久，救濟 = 重貼匯入碼（原文須自行留存）。
 
 ## 環境

@@ -33,6 +33,14 @@
 
   /* 底部導覽列總高度：icon 區固定 60px + home bar safe-area（Task11 放大後內容 ~58px，調至 60px）*/
   --nav-h: calc(60px + var(--safe-b));
+
+  /* 字級 type scale（Task10；本輪只授權 .trip-* 引用，其他分頁硬編碼字級屬「尚未收斂」）
+     下限 13px（--fs-xs），全行程頁禁止 <13px；--fs-md ≥16px 保 iOS textarea 不縮放 */
+  --fs-xl: 22px;   /* 單日層日期大標、飯店名、緊急電話等重點關鍵資訊 */
+  --fs-lg: 19px;   /* 卡片/區塊主標題：flight-label、section-title、hotel-name 等 */
+  --fs-md: 17px;   /* 內文主體：item-title/detail、地址、電話（≥16px，iOS 聚焦不縮放）*/
+  --fs-sm: 15px;   /* 輔助資訊：時間、日期、備注、label 等 */
+  --fs-xs: 13px;   /* 純輔助 caption（行程頁下限）*/
 }
 
 
@@ -492,7 +500,7 @@ body {
   border: none;
   border-radius: 22px;
   color: var(--c-text-muted);
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* sm：pill 標籤 */
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -525,12 +533,12 @@ body {
   padding: 40px 24px;
   text-align: center;
   color: var(--c-text-muted);
-  font-size: 15px;
+  font-size: var(--fs-sm);   /* sm */
   line-height: 1.6;
 }
 
 .trip-section-title {
-  font-size: 12px;
+  font-size: var(--fs-lg);   /* ★ lg：區塊主標題 */
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -546,7 +554,7 @@ body {
   border-radius: 8px;
   background-color: rgba(77, 124, 244, 0.22);
   color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
-  font-size: 13px;
+  font-size: var(--fs-xs);   /* xs：暫時提示 */
   font-weight: 600;
   margin-left: 8px;
   vertical-align: middle;
@@ -561,18 +569,21 @@ body {
 }
 
 
-/* ── 行程：日卡 ─────────────────────────────────────────────── */
-.trip-day-card {
-  border-bottom: 1px solid var(--c-divider);
+/* ── 行程：R2 總覽層（.trip-itin-overview）──────────────────── */
+/* 舊展開/收合日卡（.trip-day-card/header/label/date/theme/chevron/body）已隨 R2 退場 */
+
+.trip-itin-overview {
+  padding: 4px 0;
 }
 
-/* 日卡標題列（點擊展開／收合整天）*/
-.trip-day-header {
+/* 精簡日卡（整卡可點，觸控目標 ≥44px；今天卡有 .trip-ov-today-badge）*/
+.trip-ov-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 14px 16px;
-  min-height: 56px;
+  min-height: 64px;
+  border-bottom: 1px solid var(--c-divider);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -580,57 +591,171 @@ body {
   transition: background-color 0.12s ease;
 }
 
-.trip-day-header:active {
-  background-color: rgba(77, 124, 244, 0.10);
+.trip-ov-card:last-child {
+  border-bottom: none;
 }
 
-/* 展開狀態視覺強調 */
-.trip-day-header[aria-expanded="true"] {
-  background-color: rgba(77, 124, 244, 0.06);
+.trip-ov-card:active {
+  background-color: rgba(77, 124, 244, 0.08);
 }
 
-.trip-day-label {
-  font-size: 12px;
+.trip-ov-day-label {
+  font-size: var(--fs-lg);   /* ★ lg：卡片主標題 */
   font-weight: 700;
-  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
-  letter-spacing: 0.06em;
+  color: var(--c-accent-text);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   flex-shrink: 0;
+  min-width: 58px;
 }
 
-.trip-day-date {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--c-text);
+.trip-ov-day-date {
+  font-size: var(--fs-sm);   /* ★ sm：日期輔助資訊 */
+  color: var(--c-text-muted);
   flex-shrink: 0;
 }
 
-.trip-day-theme {
+.trip-ov-day-theme {
   flex: 1;
-  font-size: 13px;
-  color: var(--c-text-muted);
+  font-size: var(--fs-sm);   /* ★ sm */
+  color: var(--c-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trip-day-chevron {
-  font-size: 11px;
-  color: var(--c-text-muted);
+/* 今天 badge：accent 底白字，醒目 */
+.trip-ov-today-badge {
+  font-size: var(--fs-xs);   /* ★ xs：純輔助 caption */
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  padding: 3px 9px;
+  border-radius: 10px;
   flex-shrink: 0;
 }
 
-/* 日卡內容（展開後可見）*/
-.trip-day-body {
-  padding: 0 0 8px;
+
+/* ── 行程：R2 單日層（.trip-itin-day）───────────────────────── */
+.trip-itin-day {
+  padding-bottom: 16px;
 }
 
-.trip-day-body[hidden] {
-  display: none;
+/* 頂部導覽列（首版不 sticky，避免與 .trip-pills sticky 疊撞；SA §3.4）*/
+.trip-day-nav {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--c-divider);
+  background-color: var(--c-bg);
 }
 
-/* ── 行程：項目列 ───────────────────────────────────────────── */
+/* 返回鈕「‹ 總覽」*/
+.trip-day-nav-back {
+  font-size: var(--fs-md);   /* md */
+  font-weight: 600;
+  color: var(--c-accent-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  min-height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.trip-day-nav-back:active {
+  opacity: 0.7;
+}
+
+/* 標題區：Day N・M/D（週）+ theme */
+.trip-day-nav-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px;
+}
+
+.trip-day-nav-label,
+.trip-day-nav-date {
+  font-size: var(--fs-xl);   /* ★ xl：單日層日期大標 */
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.2;
+}
+
+.trip-day-nav-theme {
+  font-size: var(--fs-sm);   /* sm：主題文字次行 */
+  color: var(--c-text-muted);
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* 前後天切換鈕容器 */
+.trip-day-nav-arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 前一天 / 後一天按鈕 */
+.trip-day-nav-prev,
+.trip-day-nav-next {
+  font-size: var(--fs-md);   /* md */
+  font-weight: 600;
+  color: var(--c-accent-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  min-height: 30px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* disabled 明顯弱化（存在但不可點，不隱藏）*/
+.trip-day-nav-prev:disabled,
+.trip-day-nav-next:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 時間軸容器 */
+.trip-itin-day-content {
+  padding-bottom: 8px;
+}
+
+/* 空天提示：「本日無排定行程」*/
+.trip-itin-day-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);   /* sm */
+  line-height: 1.6;
+}
+
+
+/* ── 行程：時間軸項目列（R2 單日層，非互動，直接展開 detail）── */
+/* 舊 .trip-item-header/.trip-item-chevron/.trip-item-detail[hidden] 已退場 */
+
 .trip-item {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 3px 10px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);   /* A2：白色 tint 在淺底隱形 → 深色 tint */
 }
 
@@ -638,60 +763,33 @@ body {
   border-bottom: none;
 }
 
-.trip-item-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 16px 11px 20px;
-  min-height: 44px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  user-select: none;
-}
-
-.trip-item-header:active {
-  background-color: rgba(0, 0, 0, 0.06);   /* A3：白色 tint 在淺底隱形 → 深色 tint */
-}
-
 .trip-item-time {
-  font-size: 15px;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: var(--fs-sm);   /* ★ sm：時間輔助資訊 */
   font-weight: 700;
   color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
-  flex-shrink: 0;
-  min-width: 46px;
-  padding-top: 1px;
   font-variant-numeric: tabular-nums;
+  padding-top: 2px;
 }
 
 .trip-item-title {
-  flex: 1;
-  font-size: 15px;
+  grid-column: 2;
+  grid-row: 1;
+  font-size: var(--fs-md);   /* ★ md：內文主體 */
   color: var(--c-text);
   line-height: 1.4;
 }
 
-.trip-item-chevron {
-  font-size: 20px;
-  color: var(--c-text-muted);
-  flex-shrink: 0;
-  line-height: 1.2;
-  margin-top: -2px;
-}
-
-/* 展開詳情（\n 由 JS 轉成 <br>；white-space:pre-wrap 保底）*/
+/* 詳情（直接可見，不 hidden；\n 已由 JS 轉成 <br>；white-space:pre-wrap 保底）*/
 .trip-item-detail {
-  padding: 8px 16px 14px 76px;
-  font-size: 14px;
+  grid-column: 2;
+  grid-row: 2;
+  font-size: var(--fs-md);   /* ★ md：內文主體 */
   color: var(--c-text-muted);
   line-height: 1.65;
   white-space: pre-wrap;
-  background-color: rgba(0, 0, 0, 0.04);   /* A4：深色底減淡，淺底下不過重 */
-  border-top: 1px solid rgba(0, 0, 0, 0.08);   /* A4：白色 tint 在淺底隱形 → 深色 tint */
-}
-
-.trip-item-detail[hidden] {
-  display: none;
+  padding-top: 4px;
 }
 
 
@@ -705,11 +803,11 @@ body {
 }
 
 .trip-flight-label {
-  font-size: 11px;
+  font-size: var(--fs-lg);   /* ★ lg：航班卡主標題（11→19 提升易讀性）*/
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--c-accent-text);   /* T4：accent 文字對比紀律（11px 文字改用深階）*/
+  color: var(--c-accent-text);   /* T4：accent 文字對比紀律 */
   margin-bottom: 10px;
 }
 
@@ -722,14 +820,14 @@ body {
 }
 
 .trip-flight-no {
-  font-size: 24px;
+  font-size: var(--fs-xl);   /* xl：航班號關鍵資訊（24→22，Olina 意圖：就近取大階不強縮）*/
   font-weight: 700;
   color: var(--c-text);
   letter-spacing: 0.02em;
 }
 
 .trip-flight-date {
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* ★ sm */
   color: var(--c-text-muted);
 }
 
@@ -757,13 +855,13 @@ body {
   display: flex;
   align-items: center;
   padding: 0 4px;
-  font-size: 22px;
+  font-size: var(--fs-xl);   /* xl：「→」箭頭字符，原值即中（T6 顏色不碰）*/
   color: var(--c-accent);
   flex-shrink: 0;
 }
 
 .trip-flight-arrow-label {
-  font-size: 10px;
+  font-size: var(--fs-xs);   /* ★ xs：「出發/抵達」小標（10→13，拉到下限）*/
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -772,14 +870,14 @@ body {
 
 /* 機場 + 航廈 + 時間（JS 拼成單字串）*/
 .trip-flight-endpoint {
-  font-size: 15px;
+  font-size: var(--fs-md);   /* ★ md：航班起降資訊 */
   font-weight: 600;
   color: var(--c-text);
   line-height: 1.45;
 }
 
 .trip-flight-note {
-  font-size: 13px;
+  font-size: var(--fs-sm);   /* ★ sm：備注輔助資訊 */
   color: var(--c-text-muted);
   line-height: 1.6;
   padding-top: 14px;
@@ -797,7 +895,7 @@ body {
 }
 
 .trip-hotel-name {
-  font-size: 26px;
+  font-size: var(--fs-xl);   /* xl：飯店名重點關鍵資訊（Olina 意圖：取較大階不縮小）*/
   font-weight: 700;
   color: var(--c-text);
   margin-bottom: 6px;
@@ -805,7 +903,7 @@ body {
 }
 
 .trip-hotel-dates {
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* ★ sm */
   color: var(--c-text-muted);
   margin-bottom: 18px;
   line-height: 1.5;
@@ -818,7 +916,7 @@ body {
 
 /* 日文地址（大字展示來源；bigtext-addressline 標記語義）*/
 .trip-hotel-address-ja {
-  font-size: 18px;
+  font-size: var(--fs-md);   /* ★ md：地址（18→17 微降，維持易讀）*/
   font-weight: 600;
   color: var(--c-text);
   margin-bottom: 6px;
@@ -830,7 +928,7 @@ body {
    與 word-break:break-word，長日文地址自然換行，無需額外覆寫 */
 
 .trip-hotel-address-zh {
-  font-size: 14px;
+  font-size: var(--fs-md);   /* ★ md：地址 */
   color: var(--c-text-muted);
   margin-bottom: 14px;
 }
@@ -843,9 +941,9 @@ body {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  font-size: 18px;
+  font-size: var(--fs-md);   /* ★ md：電話連結（T5 顏色不碰）*/
   font-weight: 600;
-  color: var(--c-accent-text);   /* T5：accent 文字對比紀律（18px 連結改用深階）*/
+  color: var(--c-accent-text);   /* T5：accent 文字對比紀律 */
   text-decoration: none;
 }
 
@@ -854,7 +952,7 @@ body {
 }
 
 .trip-hotel-note {
-  font-size: 13px;
+  font-size: var(--fs-sm);   /* ★ sm：備注（13→15 提升易讀性）*/
   color: var(--c-text-muted);
   margin-bottom: 18px;
   line-height: 1.6;
@@ -880,7 +978,7 @@ body {
   padding: 0 20px;
   border: none;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: var(--fs-md);   /* md：通用按鈕 */
   font-weight: 600;
   background-color: var(--c-accent);
   color: #ffffff;
@@ -930,18 +1028,18 @@ body {
 }
 
 .trip-important-label {
-  font-size: 13px;
+  font-size: var(--fs-sm);   /* ★ sm：欄位 label */
   font-weight: 600;
   color: var(--c-text-muted);
   line-height: 1.4;
 }
 
-/* tel: 連結要大且好點 */
+/* tel: 連結要大且好點；Olina 意圖：緊急電話為關鍵資訊，取 xl 不縮（F1 override）*/
 .trip-important-tel {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  font-size: 22px;
+  font-size: var(--fs-xl);   /* xl：緊急電話關鍵資訊（Olina 意圖：維持醒目，不降到 md）*/
   font-weight: 700;
   color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   text-decoration: none;
@@ -953,7 +1051,7 @@ body {
 }
 
 .trip-important-value {
-  font-size: 14px;
+  font-size: var(--fs-md);   /* md：資料值內文 */
   color: var(--c-text);
   line-height: 1.55;
 }
@@ -966,7 +1064,7 @@ body {
 }
 
 .trip-private-title {
-  font-size: 12px;
+  font-size: var(--fs-lg);   /* lg：本機段標題（與 section-title 同構）*/
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -978,7 +1076,7 @@ body {
 .trip-private-unavail {
   margin: 0 12px 16px;
   padding: 14px 16px;
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* sm */
   color: #8A6A00;   /* A7：#E8B84B 在淺底對比 ~1.9:1 → 深琥珀 #8A6A00 */
   line-height: 1.65;
   background: rgba(232, 184, 75, 0.10);
@@ -989,7 +1087,7 @@ body {
 /* 空狀態提示文案 */
 .trip-private-info {
   padding: 0 16px;
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* sm */
   color: var(--c-text-muted);
   line-height: 1.75;
   margin-bottom: 16px;
@@ -1001,7 +1099,7 @@ body {
 }
 
 .trip-private-info small {
-  font-size: 12px;
+  font-size: var(--fs-xs);   /* xs */
   opacity: 0.75;
 }
 
@@ -1012,7 +1110,7 @@ body {
   margin: 0 16px 0;
   justify-content: center;
   min-height: 56px;
-  font-size: 19px;
+  font-size: var(--fs-lg);   /* lg：原值即中（19px）*/
   letter-spacing: 0.03em;
 }
 
@@ -1028,13 +1126,13 @@ body {
 }
 
 .trip-import-hint {
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* sm */
   color: var(--c-text-muted);
   margin-bottom: 10px;
   line-height: 1.5;
 }
 
-/* 貼上框：字夠大讓使用者容易長按，iOS 不縮放（≥ 16px）*/
+/* 貼上框：字夠大讓使用者容易長按，iOS 不縮放（≥ 16px；--fs-md=17px ✓）*/
 .trip-import-textarea {
   display: block;
   width: 100%;
@@ -1044,7 +1142,7 @@ body {
   border-radius: 12px;
   background-color: rgba(77, 124, 244, 0.06);
   color: var(--c-text);
-  font-size: 16px;                       /* iOS ≥ 16px 不自動縮放 */
+  font-size: var(--fs-md);              /* md=17px，iOS ≥16px 不自動縮放（紅線）*/
   font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
   resize: none;
   margin-bottom: 14px;
@@ -1055,7 +1153,7 @@ body {
 .trip-import-textarea::placeholder {
   color: var(--c-text-muted);
   opacity: 0.45;
-  font-size: 13px;
+  font-size: var(--fs-xs);   /* xs：placeholder caption */
 }
 
 .trip-import-textarea:focus {
@@ -1070,12 +1168,12 @@ body {
   width: 100%;
   justify-content: center;
   min-height: 54px;
-  font-size: 18px;
+  font-size: var(--fs-lg);   /* lg：主要操作按鈕（18px 就近取較大階 lg=19）*/
 }
 
 .trip-import-error {
   margin-top: 10px;
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* sm */
   color: #C63A3A;   /* A8：#FF6B6B 在淺底 ~2.9:1 AA 不過 → 深紅 #C63A3A */
   line-height: 1.55;
 }
@@ -1090,7 +1188,7 @@ body {
 }
 
 .trip-private-section-title {
-  font-size: 11px;
+  font-size: var(--fs-sm);   /* sm：護照/保險小節標（比 section-title 低一級）*/
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -1110,7 +1208,7 @@ body {
 .trip-private-row-label {
   flex-shrink: 0;
   width: 72px;
-  font-size: 13px;
+  font-size: var(--fs-sm);   /* ★ sm：欄位 label */
   color: var(--c-text-muted);
   padding-top: 2px;
   line-height: 1.4;
@@ -1118,7 +1216,7 @@ body {
 
 .trip-private-row-value {
   flex: 1;
-  font-size: 16px;
+  font-size: var(--fs-md);   /* ★ md：資料值 */
   font-weight: 600;
   color: var(--c-text);
   line-height: 1.45;
@@ -1132,7 +1230,7 @@ body {
   color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   text-decoration: none;
   font-weight: 700;
-  font-size: 18px;
+  font-size: var(--fs-md);   /* ★ md：電話連結 */
 }
 
 .trip-private-row-value a:active {
@@ -1174,7 +1272,7 @@ body {
 }
 
 .trip-export-note {
-  font-size: 13px;
+  font-size: var(--fs-xs);   /* xs：匯出說明 caption */
   color: var(--c-text-muted);
   margin-bottom: 10px;
   line-height: 1.55;
@@ -1189,7 +1287,7 @@ body {
   border-radius: 10px;
   background-color: rgba(0, 0, 0, 0.04);   /* A5：白色 tint 在淺底隱形 → 深色 tint */
   color: var(--c-text-muted);
-  font-size: 12px;
+  font-size: var(--fs-xs);   /* xs：匯出碼 monospace 長串（readonly，iOS 不觸發縮放）*/
   font-family: monospace;
   resize: vertical;
   margin-bottom: 10px;

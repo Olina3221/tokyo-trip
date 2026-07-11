@@ -9,12 +9,24 @@
  *   首次 onShow 時建立整個 #tab-trip 內部 DOM 並綁定事件。
  *   之後 onShow 不重建 DOM，保留使用者的展開狀態、子分頁選擇、輸入中的匯入碼。
  *   只有「匯入成功」或「清除成功」後才重繪本機資料段（_renderPrivateSection()）。
+ *
+ * R2 行程子區塊兩層視圖狀態機（Task10）：
+ *   _itinView ∈ {'overview'} ∪ {0..N-1}，存 closure 記憶體，禁 localStorage。
+ *   init 時今日 isoDate 對上行程某天 → 直接進該日單日層；否則總覽。
+ *   舊 B8「今天不在範圍→展開 Day1」fallback 已廢止：範圍外一律落總覽。
+ *   今天判斷只在 init 算一次，跨午夜不刷新（可接受的旅遊場景限制）。
  */
 (function () {
   'use strict';
 
   var _initialized = false;
   var _privateSectionEl = null; // 本機資料容器（僅重繪此段）
+
+  // R2 行程視圖狀態機（Task10）
+  var _itinView = 'overview'; // 'overview' | 數字 dayIdx
+  var _itinData = null;       // window.TRIP.itinerary 快照（init 後固定）
+  var _itinOverviewEl = null; // .trip-itin-overview 元素
+  var _itinDayEl = null;      // .trip-itin-day 元素（進入時整段重繪）
 
   // ── 日期工具 ────────────────────────────────────────────────
 
@@ -59,7 +71,157 @@
     }, durationMs || 1800);
   }
 
-  // ── 渲染：行程區塊 ──────────────────────────────────────────
+  // ── R2 捲動歸零 ──────────────────────────────────────────────
+  // 捲動容器是 #tab-trip（position:fixed; overflow-y:auto）
+  // 須用 tabEl.scrollTop = 0，window.scrollTo 無效（SA 補完 G2）
+
+  function _scrollToTripTab() {
+    var tabEl = document.getElementById('tab-trip');
+    if (tabEl) tabEl.scrollTop = 0;
+  }
+
+  // ── R2 視圖切換（狀態機轉移）──────────────────────────────────
+
+  function _switchView(newView) {
+    _itinView = newView;
+    if (newView === 'overview') {
+      _showOverview();
+    } else {
+      _showDayView(newView, true);
+    }
+  }
+
+  function _showOverview() {
+    if (_itinOverviewEl) _itinOverviewEl.hidden = false;
+    if (_itinDayEl) _itinDayEl.hidden = true;
+    _scrollToTripTab();
+  }
+
+  function _showDayView(dayIdx, doScroll) {
+    _renderDayContent(dayIdx);
+    if (_itinOverviewEl) _itinOverviewEl.hidden = true;
+    if (_itinDayEl) _itinDayEl.hidden = false;
+    if (doScroll) _scrollToTripTab();
+  }
+
+  // ── R2 單日層內容渲染（進入/換天時整段重繪）──────────────────
+
+  function _renderDayContent(dayIdx) {
+    if (!_itinData || dayIdx < 0 || dayIdx >= _itinData.length) return;
+    var dayObj = _itinData[dayIdx];
+    var N = _itinData.length;
+
+    _itinDayEl.innerHTML = '';
+
+    // 頂部導覽列 .trip-day-nav
+    var nav = document.createElement('div');
+    nav.className = 'trip-day-nav';
+
+    // 返回鈕「‹ 總覽」
+    var backBtn = document.createElement('button');
+    backBtn.className = 'trip-day-nav-back';
+    backBtn.textContent = '‹ 總覽';
+    backBtn.addEventListener('click', function () {
+      _switchView('overview');
+    });
+
+    // 標題區：Day N・M/D（週）+ theme
+    var titleDiv = document.createElement('div');
+    titleDiv.className = 'trip-day-nav-title';
+
+    var labelSpan = document.createElement('span');
+    labelSpan.className = 'trip-day-nav-label';
+    labelSpan.textContent = dayObj.day || '';
+
+    var sepSpan = document.createElement('span');
+    sepSpan.className = 'trip-day-nav-sep';
+    sepSpan.textContent = '・';
+    sepSpan.setAttribute('aria-hidden', 'true');
+
+    var dateSpan = document.createElement('span');
+    dateSpan.className = 'trip-day-nav-date';
+    dateSpan.textContent = dayObj.isoDate ? isoToDisplay(dayObj.isoDate) : '';
+
+    titleDiv.appendChild(labelSpan);
+    titleDiv.appendChild(sepSpan);
+    titleDiv.appendChild(dateSpan);
+
+    if (dayObj.theme) {
+      var themeDiv = document.createElement('div');
+      themeDiv.className = 'trip-day-nav-theme';
+      themeDiv.textContent = dayObj.theme;
+      titleDiv.appendChild(themeDiv);
+    }
+
+    // 前一天／後一天切換鈕（disabled 不隱藏）
+    var arrowsDiv = document.createElement('div');
+    arrowsDiv.className = 'trip-day-nav-arrows';
+
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'trip-day-nav-prev';
+    prevBtn.textContent = '‹ 前一天';
+    prevBtn.disabled = (dayIdx === 0);
+    prevBtn.addEventListener('click', function () {
+      if (dayIdx > 0) _switchView(dayIdx - 1);
+    });
+
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'trip-day-nav-next';
+    nextBtn.textContent = '後一天 ›';
+    nextBtn.disabled = (dayIdx === N - 1);
+    nextBtn.addEventListener('click', function () {
+      if (dayIdx < N - 1) _switchView(dayIdx + 1);
+    });
+
+    arrowsDiv.appendChild(prevBtn);
+    arrowsDiv.appendChild(nextBtn);
+    nav.appendChild(backBtn);
+    nav.appendChild(titleDiv);
+    nav.appendChild(arrowsDiv);
+    _itinDayEl.appendChild(nav);
+
+    // 時間軸內容 .trip-itin-day-content
+    var content = document.createElement('div');
+    content.className = 'trip-itin-day-content';
+
+    var items = dayObj.items || [];
+    if (items.length === 0) {
+      var emptyP = document.createElement('p');
+      emptyP.className = 'trip-itin-day-empty';
+      emptyP.textContent = '本日無排定行程';
+      content.appendChild(emptyP);
+    } else {
+      items.forEach(function (item) {
+        var row = document.createElement('div');
+        row.className = 'trip-item';
+        // 單日層為瀏覽模式（非互動），不加 role="button" / aria-expanded
+
+        var timeEl = document.createElement('span');
+        timeEl.className = 'trip-item-time';
+        timeEl.textContent = item.time || '';
+        row.appendChild(timeEl);
+
+        var titleEl = document.createElement('span');
+        titleEl.className = 'trip-item-title';
+        titleEl.textContent = item.title || '';
+        row.appendChild(titleEl);
+
+        if (item.detail) {
+          var detailEl = document.createElement('div');
+          detailEl.className = 'trip-item-detail';
+          // detail 直接完整顯示（不 hidden），\n → <br>
+          detailEl.innerHTML = escHtml(item.detail).replace(/\n/g, '<br>');
+          row.appendChild(detailEl);
+        }
+
+        content.appendChild(row);
+      });
+    }
+
+    _itinDayEl.appendChild(content);
+  }
+
+  // ── 渲染：行程區塊（Task10 R2 重構為兩層視圖）──────────────────
 
   function buildItinerarySection(data) {
     var sec = document.createElement('div');
@@ -71,99 +233,73 @@
       return sec;
     }
 
+    _itinData = data.itinerary;
     var todayIso = getTodayIsoDate();
+    var todayIdx = -1;
 
-    data.itinerary.forEach(function (dayObj, dayIdx) {
-      var card = document.createElement('div');
-      card.className = 'trip-day-card';
-      card.dataset.isoDate = dayObj.isoDate || '';
+    // 總覽層 .trip-itin-overview
+    _itinOverviewEl = document.createElement('div');
+    _itinOverviewEl.className = 'trip-itin-overview';
 
-      // 日卡標題（點擊展開／收合整天）
-      var hdr = document.createElement('div');
-      hdr.className = 'trip-day-header';
-      hdr.setAttribute('role', 'button');
-      hdr.setAttribute('aria-expanded', 'false');
-      hdr.innerHTML =
-        '<span class="trip-day-label">' + escHtml(dayObj.day || '') + '</span>' +
-        '<span class="trip-day-date">' + escHtml(dayObj.isoDate ? isoToDisplay(dayObj.isoDate) : '') + '</span>' +
-        '<span class="trip-day-theme">' + escHtml(dayObj.theme || '') + '</span>' +
-        '<span class="trip-day-chevron" aria-hidden="true">▶</span>';
-
-      var body = document.createElement('div');
-      body.className = 'trip-day-body';
-      body.hidden = true;
-
-      // 行程項目
-      (dayObj.items || []).forEach(function (item) {
-        var row = document.createElement('div');
-        row.className = 'trip-item';
-
-        var itemHdr = document.createElement('div');
-        itemHdr.className = 'trip-item-header';
-        itemHdr.setAttribute('role', 'button');
-        itemHdr.setAttribute('aria-expanded', 'false');
-        itemHdr.innerHTML =
-          '<span class="trip-item-time">' + escHtml(item.time || '') + '</span>' +
-          '<span class="trip-item-title">' + escHtml(item.title || '') + '</span>';
-        if (item.detail) {
-          itemHdr.innerHTML += '<span class="trip-item-chevron" aria-hidden="true">›</span>';
-        }
-
-        row.appendChild(itemHdr);
-
-        if (item.detail) {
-          var detail = document.createElement('div');
-          detail.className = 'trip-item-detail';
-          detail.hidden = true;
-          // \n → <br>
-          detail.innerHTML = escHtml(item.detail).replace(/\n/g, '<br>');
-          row.appendChild(detail);
-
-          itemHdr.addEventListener('click', function () {
-            var open = !detail.hidden;
-            detail.hidden = open;
-            itemHdr.setAttribute('aria-expanded', String(!open));
-            var ch = itemHdr.querySelector('.trip-item-chevron');
-            if (ch) ch.textContent = open ? '›' : '‹';
-          });
-        }
-
-        body.appendChild(row);
-      });
-
-      // 日卡展開／收合
-      hdr.addEventListener('click', function () {
-        var open = !body.hidden;
-        body.hidden = open;
-        hdr.setAttribute('aria-expanded', String(!open));
-        var ch = hdr.querySelector('.trip-day-chevron');
-        if (ch) ch.textContent = open ? '▼' : '▶';
-      });
-
-      card.appendChild(hdr);
-      card.appendChild(body);
-      sec.appendChild(card);
-
-      // 預設展開今日日卡（B8）
-      if (dayObj.isoDate === todayIso) {
-        body.hidden = false;
-        hdr.setAttribute('aria-expanded', 'true');
-        var ch = hdr.querySelector('.trip-day-chevron');
-        if (ch) ch.textContent = '▼';
+    _itinData.forEach(function (dayObj, idx) {
+      // 找今天 index（缺 isoDate 的天不參與比對）
+      if (dayObj.isoDate && dayObj.isoDate === todayIso) {
+        todayIdx = idx;
       }
+
+      // 精簡日卡：Day＋日期＋theme，不顯示 items
+      var card = document.createElement('div');
+      card.className = 'trip-ov-card';
+      card.dataset.dayIdx = String(idx);
+
+      var labelEl = document.createElement('div');
+      labelEl.className = 'trip-ov-day-label';
+      labelEl.textContent = dayObj.day || '';
+
+      var dateEl = document.createElement('div');
+      dateEl.className = 'trip-ov-day-date';
+      dateEl.textContent = dayObj.isoDate ? isoToDisplay(dayObj.isoDate) : '';
+
+      var themeEl = document.createElement('div');
+      themeEl.className = 'trip-ov-day-theme';
+      themeEl.textContent = dayObj.theme || '';
+
+      card.appendChild(labelEl);
+      card.appendChild(dateEl);
+      card.appendChild(themeEl);
+
+      // 今天 badge（判斷只在 init 算一次，跨午夜不刷新）
+      if (dayObj.isoDate && dayObj.isoDate === todayIso) {
+        var badge = document.createElement('span');
+        badge.className = 'trip-ov-today-badge';
+        badge.textContent = '今天';
+        card.appendChild(badge);
+      }
+
+      // 整卡可點 → 進入單日層
+      card.addEventListener('click', function () {
+        _switchView(idx);
+      });
+
+      _itinOverviewEl.appendChild(card);
     });
 
-    // 若今天不在行程範圍，預設展開 Day1
-    var anyOpen = sec.querySelector('.trip-day-body:not([hidden])');
-    if (!anyOpen) {
-      var firstBody = sec.querySelector('.trip-day-body');
-      var firstHdr = sec.querySelector('.trip-day-header');
-      if (firstBody && firstHdr) {
-        firstBody.hidden = false;
-        firstHdr.setAttribute('aria-expanded', 'true');
-        var ch2 = firstHdr.querySelector('.trip-day-chevron');
-        if (ch2) ch2.textContent = '▼';
-      }
+    sec.appendChild(_itinOverviewEl);
+
+    // 單日層（初始隱藏，進入時整段重繪）
+    _itinDayEl = document.createElement('div');
+    _itinDayEl.className = 'trip-itin-day';
+    _itinDayEl.hidden = true;
+    sec.appendChild(_itinDayEl);
+
+    // 初始視圖：今天對上某天 → 直進單日層；範圍外/對不上 → 總覽
+    // 廢止舊 B8「範圍外→展開 Day1」fallback
+    if (todayIdx >= 0) {
+      _itinView = todayIdx;
+      _showDayView(todayIdx, false); // init 不捲動
+    } else {
+      _itinView = 'overview';
+      // 總覽層已可見（hidden 預設 false）
     }
 
     return sec;
@@ -727,7 +863,7 @@
     if (!_initialized) {
       init();
     }
-    // B6：之後不重建 DOM，保留使用者狀態
+    // B6：之後不重建 DOM，保留使用者狀態（含 _itinView 跨分頁保留）
   }
 
   // ── 工具：HTML 跳脫 ─────────────────────────────────────────
@@ -740,7 +876,7 @@
       .replace(/"/g, '&quot;');
   }
 
-  // ISO 日期轉顯示字串（YYYY-MM-DD → M/D）
+  // ISO 日期轉顯示字串（YYYY-MM-DD → M/D（週））
   function isoToDisplay(iso) {
     var parts = iso.split('-');
     if (parts.length < 3) return iso;

@@ -22,11 +22,11 @@
 | — | Task4 | 折價券專區（讀 `window.COUPONS`，離線；16 張真實券圖，圖片為主體） | 否 | ✅ 已完成（2026-07-11 QA PASS 64/64；收斂為 16 張—移除東京無店的 drugeleven/kintetsu；spec: `Task4.spec.md`；冷 install 真機項移交 Task7） |
 | — | Task8 | UX 調整：全 App 改淺色主題 + 常用句分類切換導覽（Olina 實機回饋；B2 已縮小為僅導覽 UI，內容零增刪） | 否 | ✅ 已完成（2026-07-11 QA PASS 靜態驗收全過，phrases.js 機械判準 6+0/41 句零增刪；spec: `Task8.spec.md`；overlay 可讀性/深藍卡對比之真機目視由 Olina 部署後流程外確認） |
 | — | Task11 | 底部導覽列淺色化＋字/icon 放大（U1）＋常用句分類 chips 裁切修復（U2）＋航班/飯店卡淺色化（U3）（Olina 第三批實機回饋） | 否 | ✅ 已完成（2026-07-11 QA PASS 靜態 15/15＋整合全過；spec: `Task11.spec.md`；U2 實機視覺由 Olina 部署後流程外確認） |
-| **1（下一個）** | **Task10** | **行程頁字級統一（五階 type scale）＋單日細節下鑽（總覽⇄單日視圖切換）（Olina 實機回饋）。字級以 Task8 淺色主題為基礎** | 否 | 🔨 spec 完成（`Task10.spec.md`）。Task11 已閉環、依賴閘解除——`Task10.ready` 已由 PM 重建，SA 可開工 |
-| 2 | Task5 | 中 ⇄ 日即時翻譯（Cloud Translation）＋翻譯結果接大字展示與語音 | 是 | 排隊 |
-| 3 | Task6 | 拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯） | 是 | 排隊 |
-| 4 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |
-| 待排 | Task9 | 常用句內容整理（依 Olina 另行提供的句子清單做增/刪/改；**清單未到不開工**，到位後由 PM 撰 spec 排入佇列，與 Task5–7 的先後屆時由 Olina 拍板）。Task8 閘已解除（分類 id 已落地，Task9 動 phrases.js 時分類 id 不得改名） | 否 | ⏸ 等 Olina 清單（Task8 側已無阻擋） |
+| — | Task9 | 常用句內容整理：移除 11 句國民基本用語＋新增 9 句實用句（Olina 清單已到、已拍板）；greetings 顯示名改「溝通・語言」（id 不變） | 否 | ✅ 已完成（2026-07-12 QA PASS 靜態驗收全過，39 句（4/9/9/6/5/6）、移除 11/新增 9 逐字一致、六分類 id 零改動、sw.js v8；spec: `Task9.spec.md`） |
+| — | Task10 | 行程頁字級統一（五階 type scale）＋單日細節下鑽（總覽⇄單日視圖切換）（Olina 實機回饋）。字級以 Task8 淺色主題為基礎 | 否 | ✅ 已完成（2026-07-12 QA PASS，impact §6 機械判準 1–12 全過＋Playwright 瀏覽器實測；R1 零硬編碼、F1 三處維持 xl=22、R2 狀態機全驗、sw.js v9；spec: `Task10.spec.md`；真機手感由 Olina 部署後流程外確認） |
+| **1（下一個）** | **Task5** | **中 ⇄ 日即時翻譯（Cloud Translation）＋翻譯結果接大字展示與語音** | 是 | 排隊（**開工前需 Olina 提供 Google API 金鑰**，填 `js/config.js`，gitignored） |
+| 2 | Task6 | 拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯） | 是 | 排隊（同用 Task5 那把金鑰） |
+| 3 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |
 
 拆解原則：先做離線可跑的（Task1–4），後做需網路金鑰的難功能（Task5–6），最後部署（Task7）。每個 Task 小到 QA 能單輪 PASS/FAIL。
 
@@ -39,6 +39,12 @@
 排序調整（2026-07-11，第三批實機回饋）：**Task11 插隊 Task10 之前**——U2（chips 裁切）是壞掉的既有功能、且 U1/U2 皆為 css 快修，先讓常用句可用；Task10 行程下鑽較大，順延一位。兩任務都改 `css/style.css`，**依序執行**（Task11 先、Task10 後）：`Task10.ready` 已由 PM 收回，Task11 閉環後由 PM 重建。CACHE_VERSION 連動：Task11 預期 v6→v7，Task10 順延為 v7→v8（其 spec 寫「開工時實際值 +1」自動吸收）。
 
 閉環註記（2026-07-11）：**Task11 已正式閉環**（sw.js 現為 v7；深底解耦清單收斂為僅 `.bigtext-*`/`.cv-*`，見 SYSTEM_MAP）。Task10 的「等 Task11 閉環」依賴閘解除，`Task10.ready` 已重建，Task10 為下一個。
+
+排序調整（2026-07-12）：Olina 的常用句清單已到並拍板，**Task9 排 Task10 之前**（Olina 指示「接著做 9、10」）。兩任務檔案零交集（Task9 動 phrases.js，Task10 動 trip-tab.js/style.css），但**都 bump `sw.js` 的 CACHE_VERSION**，故依序執行：Task9 先（v7→v8）、Task10 後（v8→v9，其 spec「開工時實際值 +1」自動吸收）。`Task10.ready` 已由 PM 收回，Task9 閉環後重建。
+
+閉環註記（2026-07-12）：**Task9 已正式閉環**（sw.js 現為 v8；常用句 39 句、greetings 顯示名「溝通・語言」，見 SYSTEM_MAP）。Task10 的「等 Task9 閉環」依賴閘解除，`Task10.ready` 已重建，Task10 為下一個（CACHE_VERSION 開工時 bump v8→v9）。
+
+閉環註記（2026-07-12）：**Task10 已正式閉環**（sw.js 現為 v9；trip 行程子區塊為兩層視圖狀態機、.trip-* 字級全數收斂至五階 type scale 變數、F1 三處重點標題維持 xl=22 為 Olina 意圖定案，見 SYSTEM_MAP）。實機回饋插隊任務（Task8/11/9/10）至此全部清完，佇列回到原 roadmap：**Task5（翻譯）為下一個**，其後 Task6（拍照 OCR）、Task7（部署驗收）。**Task5/6 開工前置：需 Olina 提供 Google Cloud API 金鑰**（Translation + Vision 同一把，填 `js/config.js`，gitignored，不進 repo）——金鑰未到前 PM 不建 `Task5.ready`。
 
 ## 檔案
 
