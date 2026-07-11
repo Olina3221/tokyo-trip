@@ -16,10 +16,10 @@
 
 | Task | 標題 | 需網路 | 狀態 |
 |------|------|--------|------|
-| Task1 | PWA 骨架：index.html + 分頁 shell + 離線快取(sw.js) + 加主畫面基礎 + git 初始化 | 否 | **進行中（spec: `Task1.spec.md`）** |
-| Task2 | 旅遊常用句 + 大字展示 + 日文語音播放（Web Speech API，離線） | 否 | 排隊 |
-| Task3 | 行程 / 航班 / 飯店 / 重要資料頁（讀 `js/tripdata.js`，離線） | 否 | 排隊 |
-| Task4 | 折價券專區（讀 `window.COUPONS`，離線） | 否 | 排隊 |
+| Task1 | PWA 骨架：index.html + 分頁 shell + 離線快取(sw.js) + 加主畫面基礎 + git 初始化 | 否 | ✅ 已完成（2026-07-11 QA PASS，spec: `Task1.spec.md`） |
+| Task2 | 旅遊常用句 + 大字展示 + 日文語音播放（Web Speech API，離線） | 否 | ✅ 已完成（2026-07-11 QA PASS 45/45，spec: `Task2.spec.md`） |
+| Task3 | 行程 / 航班 / 飯店 / 重要資料頁（讀 `js/tripdata.js`，離線；個資走本機層匯入碼） | 否 | ✅ 已完成（2026-07-11 QA PASS，失敗 1 次修復後通過；spec: `Task3.spec.md`；真機項移交 Task7） |
+| Task4 | 折價券專區（讀 `window.COUPONS`，離線） | 否 | ⬅ 下一個 |
 | Task5 | 中 ⇄ 日即時翻譯（Cloud Translation）＋翻譯結果接大字展示與語音 | 是 | 排隊 |
 | Task6 | 拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯） | 是 | 排隊 |
 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |

@@ -1,0 +1,1194 @@
+/* ════════════════════════════════════════════════════════════
+   style.css — Tokyo Trip PWA
+   iOS 風格 / 直式 / 深色主題 / safe-area
+   ════════════════════════════════════════════════════════════
+
+   z-index 層級規範（A7）
+   ─────────────────────────────────────────────────────────
+   底部導覽列 #nav-bar                    : z-index 10
+   [未來実装] 全螢幕 overlay              : z-index >= 100
+     Task2  大字展示（phrases fullscreen）
+     Task5  翻譯結果遮罩
+     Task6  相機取景 / OCR 結果層
+   → 設 z-index: 100 即可蓋過導覽列，不需改骨架 CSS
+   ═══════════════════════════════════════════════════════════ */
+
+
+/* ── CSS 變數 ─────────────────────────────────────────────── */
+:root {
+  /* 主題色（呼應 manifest background_color / theme_color = #1F2A5C）*/
+  --c-primary:     #1F2A5C;   /* manifest 主色：導覽列 / surface */
+  --c-bg:          #0D1426;   /* 主背景：深藍黑 */
+  --c-accent:      #4D7CF4;   /* 強調色：選中分頁 */
+  --c-text:        #F0F4FF;   /* 主文字：近白（帶藍色調）*/
+  --c-text-muted:  #7A8DB8;   /* 次要文字：灰藍 */
+  --c-divider:     rgba(255, 255, 255, 0.10);
+
+  /* safe-area（env() 回退 0px，確保桌面/模擬器正常）*/
+  --safe-t: env(safe-area-inset-top,    0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left,   0px);
+  --safe-r: env(safe-area-inset-right,  0px);
+
+  /* 底部導覽列總高度：icon 區固定 56px + home bar safe-area */
+  --nav-h: calc(56px + var(--safe-b));
+}
+
+
+/* ── 重置 ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  /* 防止 iOS 橡皮筋效果讓整個 html 滾動 */
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  /* safe-area 三邊（top + sides）；底部由 nav-bar 的 padding-bottom 處理 */
+  padding-top:   var(--safe-t);
+  padding-left:  var(--safe-l);
+  padding-right: var(--safe-r);
+  /* iOS 點擊高亮 */
+  -webkit-tap-highlight-color: transparent;
+  /* 防整頁 overscroll */
+  overscroll-behavior: none;
+}
+
+
+/* ── 分頁容器（A1 DOM 約定）──────────────────────────────────
+   id="tab-{id}"：app.js showTab() 依此 id 切換 hidden 屬性
+   fixed 定位讓各分頁獨立佔滿內容區，互不影響
+   Task2–6 整塊替換 .placeholder-card，section 本體不需異動
+   ─────────────────────────────────────────────────────────── */
+.tab-section {
+  position: fixed;
+  top:    var(--safe-t);
+  left:   var(--safe-l);
+  right:  var(--safe-r);
+  bottom: var(--nav-h);      /* 留給底部導覽列 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+/* app.js 用原生 hidden 屬性控制顯示；同時用 display:none 保險 */
+.tab-section[hidden] {
+  display: none;
+}
+
+
+/* ── 佔位卡 ──────────────────────────────────────────────────
+   Task2–6：整塊替換此 div 即可，section 結構不變
+   ─────────────────────────────────────────────────────────── */
+.placeholder-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 72px;
+  line-height: 1;
+  user-select: none;
+}
+
+.placeholder-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--c-text);
+}
+
+.placeholder-desc {
+  font-size: 16px;
+  color: var(--c-text-muted);
+}
+
+
+/* ── 底部導覽列（A7：z-index:10）────────────────────────────
+   overlay（Task2/5/6）設 z-index >= 100 可完整蓋過導覽列
+   ─────────────────────────────────────────────────────────── */
+#nav-bar {
+  position: fixed;
+  bottom: 0;
+  left:   0;
+  right:  0;
+  z-index: 10;             /* A7 */
+
+  display: flex;
+  align-items: stretch;
+  background-color: var(--c-primary);
+  border-top: 1px solid var(--c-divider);
+  /* iOS home bar 安全區（env safe-area-inset-bottom）*/
+  padding-bottom: var(--safe-b);
+}
+
+
+/* ── 導覽按鈕（觸控目標 >= 44px）──────────────────────────── */
+.nav-btn {
+  flex: 1;
+  min-height: 56px;       /* icon 區高度，觸控目標滿足 >= 44px */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 2px;
+
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--c-text-muted);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;   /* 消除 300ms 點擊延遲 */
+  transition: color 0.12s ease;
+}
+
+.nav-btn.active {
+  color: var(--c-accent);
+}
+
+.nav-btn:active {
+  opacity: 0.6;
+}
+
+/* 導覽圖示 */
+.nav-icon {
+  font-size: 24px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* 導覽文字標籤 */
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task2 — 常用句分頁
+   DOM 由 js/phrases-tab.js 動態渲染
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 容器 ─────────────────────────────────────────────────── */
+.phrases-container {
+  width: 100%;
+  padding-bottom: 16px;
+}
+
+/* ── 分類組 ──────────────────────────────────────────────── */
+.phrases-group {
+  margin-bottom: 4px;
+}
+
+/* 分類標題：sticky 跟著 .tab-section 的捲動 */
+.phrases-cat {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--c-bg);
+  padding: 14px 16px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+
+.phrases-list {
+  list-style: none;
+}
+
+/* ── 句子項目 ─────────────────────────────────────────────── */
+.phrases-item {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--c-divider);
+}
+
+/* 句子本體（點擊開大字 overlay）— 觸控目標 ≥ 44px */
+.phrases-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 8px 12px 16px;
+  min-height: 64px;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.1s ease;
+}
+
+.phrases-item-body:active {
+  background-color: rgba(77, 124, 244, 0.12);
+}
+
+/* 中文（主）— 最醒目 */
+.phrases-zh {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.35;
+}
+
+/* 日文（次）*/
+.phrases-ja {
+  display: block;
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+}
+
+/* 羅馬拼音（小字）*/
+.phrases-romaji {
+  display: block;
+  font-size: 11px;
+  color: var(--c-text-muted);
+  opacity: 0.65;
+  line-height: 1.4;
+}
+
+/* 播放鈕（句子右側）— 觸控目標 ≥ 44px（高度繼承同行 .phrases-item-body）*/
+.phrases-speak-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 56px;
+  padding: 0 6px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--c-accent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.phrases-speak-btn:active {
+  opacity: 0.5;
+}
+
+.phrases-speak-btn:disabled {
+  color: var(--c-text-muted);
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 句庫載入失敗文案 */
+.phrases-error {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task2 — 大字展示 Overlay（Task5/6 共用元件）
+   JS（bigtext.js）用 inline style display:none 初始隱藏；
+   顯示時移除 inline style → 本 CSS 的 display:flex 生效（A7/B1）
+   ════════════════════════════════════════════════════════════ */
+
+/* A7：z-index ≥ 100 蓋過導覽列；B1：fixed 掛 body，不掛 section */
+.bigtext-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  /* 深色高對比，呼應 #1F2A5C 主題 */
+  background-color: #0A1020;
+  /* 四邊 safe-area（沿用 --safe-* 變數）*/
+  padding-top:    calc(var(--safe-t) + 20px);
+  padding-right:  calc(var(--safe-r) + 16px);
+  padding-bottom: calc(var(--safe-b) + 20px);
+  padding-left:   calc(var(--safe-l) + 16px);
+}
+
+/* 主文 + 小字區，垂直置中 */
+.bigtext-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* 日文主角：超大字，給店員看；clamp 確保最長句不溢出 */
+.bigtext-ja {
+  font-size: clamp(48px, 13vw, 96px);
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  width: 100%;
+  margin: 0;
+}
+
+/* 中文 + 羅馬拼音小字區（ja-only 時 JS 以 inline style 隱藏整段）*/
+.bigtext-sub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bigtext-zh {
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(240, 244, 255, 0.85);
+  text-align: center;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.bigtext-romaji {
+  font-size: 14px;
+  color: rgba(240, 244, 255, 0.50);
+  text-align: center;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* 控制區：播放鈕 + 關閉鈕 */
+.bigtext-controls {
+  flex-shrink: 0;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding-top: 12px;
+}
+
+/* 播放鈕（overlay 內）— 觸控目標 ≥ 44px */
+.bigtext-speak-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 56px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 26px;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.bigtext-speak-btn:active {
+  opacity: 0.7;
+}
+
+.bigtext-speak-btn:disabled {
+  background-color: var(--c-text-muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 關閉鈕（spec 規則 7）— 觸控目標 ≥ 44px */
+.bigtext-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 56px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 22px;
+  background-color: rgba(255, 255, 255, 0.14);
+  color: var(--c-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.bigtext-close-btn:active {
+  opacity: 0.6;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task3 — 行程分頁（trip tab）
+   DOM 由 js/trip-tab.js 動態渲染；class 名由 Task3.api.md 定案
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 主容器 ─────────────────────────────────────────────────── */
+.trip-container {
+  width: 100%;
+  padding-bottom: 32px;   /* 避免鍵盤彈出遮住底部內容 */
+}
+
+/* ── Pill 導覽（子區塊切換）────────────────────────────────── */
+.trip-pills {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  padding: 10px 12px;
+  gap: 8px;
+  background-color: var(--c-bg);
+  border-bottom: 1px solid var(--c-divider);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.trip-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.trip-pill {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 18px;
+  background: rgba(255, 255, 255, 0.07);
+  border: none;
+  border-radius: 22px;
+  color: var(--c-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.trip-pill.active {
+  background: var(--c-accent);
+  color: #ffffff;
+}
+
+.trip-pill:active {
+  opacity: 0.7;
+}
+
+/* ── 共用：section 容器、錯誤、標題 ──────────────────────── */
+.trip-section {
+  width: 100%;
+  padding-bottom: 16px;
+}
+
+.trip-section[hidden] {
+  display: none;
+}
+
+.trip-error {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.trip-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  padding: 18px 16px 8px;
+}
+
+/* 暫時提示（複製成功等，trip-tab.js 動態插入）*/
+.trip-tip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background-color: rgba(77, 124, 244, 0.22);
+  color: var(--c-accent);
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+  pointer-events: none;
+  animation: trip-tip-fade 1.8s ease forwards;
+}
+
+@keyframes trip-tip-fade {
+  0%   { opacity: 1; }
+  65%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
+/* ── 行程：日卡 ─────────────────────────────────────────────── */
+.trip-day-card {
+  border-bottom: 1px solid var(--c-divider);
+}
+
+/* 日卡標題列（點擊展開／收合整天）*/
+.trip-day-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  min-height: 56px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  transition: background-color 0.12s ease;
+}
+
+.trip-day-header:active {
+  background-color: rgba(77, 124, 244, 0.10);
+}
+
+/* 展開狀態視覺強調 */
+.trip-day-header[aria-expanded="true"] {
+  background-color: rgba(77, 124, 244, 0.06);
+}
+
+.trip-day-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.trip-day-date {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+  flex-shrink: 0;
+}
+
+.trip-day-theme {
+  flex: 1;
+  font-size: 13px;
+  color: var(--c-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-day-chevron {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  flex-shrink: 0;
+}
+
+/* 日卡內容（展開後可見）*/
+.trip-day-body {
+  padding: 0 0 8px;
+}
+
+.trip-day-body[hidden] {
+  display: none;
+}
+
+/* ── 行程：項目列 ───────────────────────────────────────────── */
+.trip-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trip-item:last-child {
+  border-bottom: none;
+}
+
+.trip-item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 16px 11px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.trip-item-header:active {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.trip-item-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-accent);
+  flex-shrink: 0;
+  min-width: 46px;
+  padding-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-item-title {
+  flex: 1;
+  font-size: 15px;
+  color: var(--c-text);
+  line-height: 1.4;
+}
+
+.trip-item-chevron {
+  font-size: 20px;
+  color: var(--c-text-muted);
+  flex-shrink: 0;
+  line-height: 1.2;
+  margin-top: -2px;
+}
+
+/* 展開詳情（\n 由 JS 轉成 <br>；white-space:pre-wrap 保底）*/
+.trip-item-detail {
+  padding: 8px 16px 14px 76px;
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  background-color: rgba(0, 0, 0, 0.18);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trip-item-detail[hidden] {
+  display: none;
+}
+
+
+/* ── 航班：卡片 ─────────────────────────────────────────────── */
+.trip-flight-card {
+  margin: 14px 12px 0;
+  padding: 18px 16px;
+  background-color: var(--c-primary);
+  border-radius: 16px;
+  border: 1px solid var(--c-divider);
+}
+
+.trip-flight-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 10px;
+}
+
+.trip-flight-info {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.trip-flight-no {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--c-text);
+  letter-spacing: 0.02em;
+}
+
+.trip-flight-date {
+  font-size: 14px;
+  color: var(--c-text-muted);
+}
+
+/* 去 → 來 路線列 */
+.trip-flight-route {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 16px;
+  background-color: rgba(0, 0, 0, 0.20);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.trip-flight-from,
+.trip-flight-to {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.trip-flight-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 22px;
+  color: var(--c-accent);
+  flex-shrink: 0;
+}
+
+.trip-flight-arrow-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+
+/* 機場 + 航廈 + 時間（JS 拼成單字串）*/
+.trip-flight-endpoint {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.45;
+}
+
+.trip-flight-note {
+  font-size: 13px;
+  color: var(--c-text-muted);
+  line-height: 1.6;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-divider);
+}
+
+
+/* ── 飯店：卡片 ─────────────────────────────────────────────── */
+.trip-hotel-card {
+  margin: 14px 12px 0;
+  padding: 18px 16px;
+  background-color: var(--c-primary);
+  border-radius: 16px;
+  border: 1px solid var(--c-divider);
+}
+
+.trip-hotel-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--c-text);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+.trip-hotel-dates {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.trip-hotel-sep {
+  margin: 0 4px;
+  opacity: 0.6;
+}
+
+/* 日文地址（大字展示來源；bigtext-addressline 標記語義）*/
+.trip-hotel-address-ja {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 6px;
+  line-height: 1.5;
+  word-break: break-all;   /* 確保長地址不橫向溢出 */
+}
+
+/* B7：在 bigtext overlay 中，.bigtext-ja 已有 overflow-wrap:break-word
+   與 word-break:break-word，長日文地址自然換行，無需額外覆寫 */
+
+.trip-hotel-address-zh {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  margin-bottom: 14px;
+}
+
+.trip-hotel-tel {
+  margin-bottom: 16px;
+}
+
+.trip-hotel-tel a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c-accent);
+  text-decoration: none;
+}
+
+.trip-hotel-tel a:active {
+  opacity: 0.7;
+}
+
+.trip-hotel-note {
+  font-size: 13px;
+  color: var(--c-text-muted);
+  margin-bottom: 18px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+}
+
+/* 飯店操作按鈕列 */
+.trip-hotel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+
+/* ── 通用 trip-btn（觸控目標 ≥ 44px）──────────────────────── */
+.trip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  text-decoration: none;
+  transition: opacity 0.12s ease;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.trip-btn:active {
+  opacity: 0.65;
+}
+
+/* 飯店：地圖鈕（外連，帶外連圖示文字）*/
+.trip-btn-map {
+  background-color: rgba(77, 124, 244, 0.18);
+  color: var(--c-accent);
+  border: 1px solid rgba(77, 124, 244, 0.35);
+}
+
+/* 飯店：大字鈕 */
+.trip-btn-bigtext {
+  background-color: rgba(255, 255, 255, 0.10);
+  color: var(--c-text);
+}
+
+
+/* ── 重要資料：公開段 ────────────────────────────────────────── */
+.trip-important-public {
+  padding-bottom: 8px;
+}
+
+.trip-important-list {
+  list-style: none;
+}
+
+.trip-important-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-divider);
+}
+
+.trip-important-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+}
+
+/* tel: 連結要大且好點 */
+.trip-important-tel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--c-accent);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.trip-important-tel:active {
+  opacity: 0.7;
+}
+
+.trip-important-value {
+  font-size: 14px;
+  color: var(--c-text);
+  line-height: 1.55;
+}
+
+
+/* ── 重要資料：本機私人段 ──────────────────────────────────── */
+.trip-private-section {
+  margin-top: 12px;
+  border-top: 2px solid var(--c-divider);
+}
+
+.trip-private-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  padding: 18px 16px 10px;
+}
+
+/* localStorage 不可用提示 */
+.trip-private-unavail {
+  margin: 0 12px 16px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #E8B84B;
+  line-height: 1.65;
+  background: rgba(232, 184, 75, 0.08);
+  border: 1px solid rgba(232, 184, 75, 0.20);
+  border-radius: 12px;
+}
+
+/* 空狀態提示文案 */
+.trip-private-info {
+  padding: 0 16px;
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+
+.trip-private-info strong {
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+.trip-private-info small {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* 空狀態「匯入」按鈕：全寬大按鈕，醒目 */
+.trip-btn-import {
+  display: flex;
+  width: calc(100% - 32px);
+  margin: 0 16px 0;
+  justify-content: center;
+  min-height: 56px;
+  font-size: 19px;
+  letter-spacing: 0.03em;
+}
+
+/* ── 匯入區（空狀態時立即可見；重新匯入時預設隱藏）──────────
+   textarea 優先顯示，一看就知道要長按貼上
+   ─────────────────────────────────────────────────────────── */
+.trip-import-area {
+  padding: 16px;
+}
+
+.trip-import-area[hidden] {
+  display: none;
+}
+
+.trip-import-hint {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* 貼上框：字夠大讓使用者容易長按，iOS 不縮放（≥ 16px）*/
+.trip-import-textarea {
+  display: block;
+  width: 100%;
+  min-height: 110px;
+  padding: 14px;
+  border: 2px solid var(--c-accent);    /* 強框線：視覺引導貼上 */
+  border-radius: 12px;
+  background-color: rgba(77, 124, 244, 0.06);
+  color: var(--c-text);
+  font-size: 16px;                       /* iOS ≥ 16px 不自動縮放 */
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  resize: none;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
+}
+
+.trip-import-textarea::placeholder {
+  color: var(--c-text-muted);
+  opacity: 0.45;
+  font-size: 13px;
+}
+
+.trip-import-textarea:focus {
+  outline: none;
+  border-color: #7AA6FF;
+  background-color: rgba(77, 124, 244, 0.10);
+}
+
+/* 確認匯入按鈕：全寬大按鈕 */
+.trip-btn-confirm {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  min-height: 54px;
+  font-size: 18px;
+}
+
+.trip-import-error {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #FF6B6B;
+  line-height: 1.55;
+}
+
+.trip-import-error[hidden] {
+  display: none;
+}
+
+/* ── 已匯入狀態：資料欄位 ──────────────────────────────────── */
+.trip-private-fields {
+  padding-bottom: 8px;
+}
+
+.trip-private-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  padding: 14px 16px 4px;
+}
+
+.trip-private-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 44px;
+}
+
+.trip-private-row-label {
+  flex-shrink: 0;
+  width: 72px;
+  font-size: 13px;
+  color: var(--c-text-muted);
+  padding-top: 2px;
+  line-height: 1.4;
+}
+
+.trip-private-row-value {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.trip-private-row-value a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--c-accent);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.trip-private-row-value a:active {
+  opacity: 0.7;
+}
+
+/* ── 已匯入狀態：操作按鈕列 ───────────────────────────────── */
+.trip-private-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 16px 16px;
+}
+
+.trip-btn-reimport {
+  background-color: rgba(77, 124, 244, 0.18);
+  color: var(--c-accent);
+  border: 1px solid rgba(77, 124, 244, 0.32);
+}
+
+.trip-btn-export {
+  background-color: rgba(255, 255, 255, 0.10);
+  color: var(--c-text);
+}
+
+.trip-btn-clear {
+  background-color: rgba(255, 90, 90, 0.12);
+  color: #FF6B6B;
+  border: 1px solid rgba(255, 90, 90, 0.28);
+}
+
+/* ── 匯出區 ─────────────────────────────────────────────────── */
+.trip-export-area {
+  padding: 0 16px 16px;
+}
+
+.trip-export-area[hidden] {
+  display: none;
+}
+
+.trip-export-note {
+  font-size: 13px;
+  color: var(--c-text-muted);
+  margin-bottom: 10px;
+  line-height: 1.55;
+}
+
+.trip-export-textarea {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-divider);
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--c-text-muted);
+  font-size: 12px;
+  font-family: monospace;
+  resize: vertical;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}

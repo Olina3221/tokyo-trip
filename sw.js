@@ -16,7 +16,7 @@
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v1';
+var CACHE_VERSION = 'v3';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -26,6 +26,13 @@ var PRECACHE_URLS = [
   './js/phrases.js',
   './js/tripdata.js',
   './js/config.example.js',
+  // Task2（A2 SOP）：三個功能模組
+  './js/tts.js',
+  './js/bigtext.js',
+  './js/phrases-tab.js',
+  // Task3（A2 SOP）：新增兩個功能模組；tripdata.js 內容全換靠 bump 生效
+  './js/import-data.js',
+  './js/trip-tab.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

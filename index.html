@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- ── iOS PWA meta ──────────────────────────────────────────
+       viewport-fit=cover：頁面延伸至瀏海/home bar 區域（safe-area 補回）
+       apple-mobile-web-app-capable：允許加入主畫面以全螢幕啟動
+       apple-mobile-web-app-status-bar-style：黑色半透明狀態列（與深色主題搭配）
+  ──────────────────────────────────────────────────────────── -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="東京行">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+  <!-- ── PWA manifest & theme ─────────────────────────────── -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#1F2A5C">
+
+  <title>東京自由行</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <!-- ──────────────────────────────────────────────────────────
+    分頁容器（A1 DOM 約定）
+      id="tab-{id}"  ← app.js showTab() 依此 id 控制 hidden
+      每個 section 直接作為 Task2–6 的掛載容器
+      Task2–6 整塊替換 .placeholder-card，不改 section 本體
+  ─────────────────────────────────────────────────────────── -->
+
+  <!-- 常用句（Task2 實作）-->
+  <section id="tab-phrases" class="tab-section">
+    <div class="placeholder-card">
+      <span class="placeholder-icon" aria-hidden="true">💬</span>
+      <h1 class="placeholder-title">常用句</h1>
+      <p class="placeholder-desc">Task2 會實作</p>
+    </div>
+  </section>
+
+  <!-- 翻譯（Task5 實作）-->
+  <section id="tab-translate" class="tab-section" hidden>
+    <div class="placeholder-card">
+      <span class="placeholder-icon" aria-hidden="true">🌐</span>
+      <h1 class="placeholder-title">翻譯</h1>
+      <p class="placeholder-desc">Task5 會實作</p>
+    </div>
+  </section>
+
+  <!-- 拍照（Task6 實作）-->
+  <section id="tab-camera" class="tab-section" hidden>
+    <div class="placeholder-card">
+      <span class="placeholder-icon" aria-hidden="true">📷</span>
+      <h1 class="placeholder-title">拍照</h1>
+      <p class="placeholder-desc">Task6 會實作</p>
+    </div>
+  </section>
+
+  <!-- 行程（Task3 實作）-->
+  <section id="tab-trip" class="tab-section" hidden>
+    <div class="placeholder-card">
+      <span class="placeholder-icon" aria-hidden="true">🗺️</span>
+      <h1 class="placeholder-title">行程</h1>
+      <p class="placeholder-desc">Task3 會實作</p>
+    </div>
+  </section>
+
+  <!-- 折價券（Task4 實作）-->
+  <section id="tab-coupons" class="tab-section" hidden>
+    <div class="placeholder-card">
+      <span class="placeholder-icon" aria-hidden="true">🎫</span>
+      <h1 class="placeholder-title">折價券</h1>
+      <p class="placeholder-desc">Task4 會實作</p>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────────
+    底部分頁導覽列
+      A1：data-tab="{id}"  ← app.js DOMContentLoaded 時綁定點擊
+      A7：z-index:10（style.css 定義；overlay 須 ≥100）
+      safe-area-inset-bottom 由 style.css 處理（iOS home bar）
+  ─────────────────────────────────────────────────────────── -->
+  <nav id="nav-bar" role="tablist" aria-label="主導覽">
+
+    <button class="nav-btn active" data-tab="phrases"
+            role="tab" aria-selected="true" aria-controls="tab-phrases">
+      <span class="nav-icon" aria-hidden="true">💬</span>
+      <span class="nav-label">常用句</span>
+    </button>
+
+    <button class="nav-btn" data-tab="translate"
+            role="tab" aria-selected="false" aria-controls="tab-translate">
+      <span class="nav-icon" aria-hidden="true">🌐</span>
+      <span class="nav-label">翻譯</span>
+    </button>
+
+    <button class="nav-btn" data-tab="camera"
+            role="tab" aria-selected="false" aria-controls="tab-camera">
+      <span class="nav-icon" aria-hidden="true">📷</span>
+      <span class="nav-label">拍照</span>
+    </button>
+
+    <button class="nav-btn" data-tab="trip"
+            role="tab" aria-selected="false" aria-controls="tab-trip">
+      <span class="nav-icon" aria-hidden="true">🗺️</span>
+      <span class="nav-label">行程</span>
+    </button>
+
+    <button class="nav-btn" data-tab="coupons"
+            role="tab" aria-selected="false" aria-controls="tab-coupons">
+      <span class="nav-icon" aria-hidden="true">🎫</span>
+      <span class="nav-label">折價券</span>
+    </button>
+
+  </nav>
+
+  <!-- ──────────────────────────────────────────────────────────
+    腳本載入順序（A6 — 前四項位置定死，Task2-6 不得更動）
+      config.js：onerror 容錯（A4）— window.APP_CONFIG 可能未定義
+      phrases.js / tripdata.js：資料層，必須在 app.js 之前
+      app.js：分頁框架 + App API + SW 註冊
+      Task2-6 功能模組：app.js 之後插入，可直接同步呼叫 App.registerTab()
+  ─────────────────────────────────────────────────────────── -->
+  <script src="./js/config.js" onerror="window._configLoadError=true"></script>
+  <script src="./js/phrases.js"></script>
+  <script src="./js/tripdata.js"></script>
+  <script src="./js/app.js"></script>
+  <!-- Task2 功能模組（順序定死：tts 在最前，phrases-tab 在最後，皆在 app.js 之後）-->
+  <script src="./js/tts.js"></script>
+  <script src="./js/bigtext.js"></script>
+  <script src="./js/phrases-tab.js"></script>
+  <!-- Task3 功能模組（順序定死：import-data 必須在 trip-tab 之前）-->
+  <script src="./js/import-data.js"></script>
+  <script src="./js/trip-tab.js"></script>
+  <!-- Task5-6 功能模組插這裡，在 trip-tab.js 之後、</body> 之前 -->
+  <!-- 例：<script src="./js/api.js"></script>（Task5）-->
+
+</body>
+</html>
