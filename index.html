@@ -6,17 +6,18 @@
   <!-- ── iOS PWA meta ──────────────────────────────────────────
        viewport-fit=cover：頁面延伸至瀏海/home bar 區域（safe-area 補回）
        apple-mobile-web-app-capable：允許加入主畫面以全螢幕啟動
-       apple-mobile-web-app-status-bar-style：黑色半透明狀態列（與深色主題搭配）
+       apple-mobile-web-app-status-bar-style：default = 不透明黑字（Task8 淺色主題）
+         → default 下 safe-area-inset-top 歸 0，全站 env() 回退 0px 模式安全
   ──────────────────────────────────────────────────────────── -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="東京行">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 
   <!-- ── PWA manifest & theme ─────────────────────────────── -->
   <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#1F2A5C">
+  <meta name="theme-color" content="#F5F6F8">   <!-- Task8 淺色主題，與 --c-bg / manifest 三處一致 -->
 
   <title>東京自由行</title>
   <link rel="stylesheet" href="./css/style.css">
@@ -135,6 +136,9 @@
   <script src="./js/trip-tab.js"></script>
   <!-- Task5-6 功能模組插這裡，在 trip-tab.js 之後、</body> 之前 -->
   <!-- 例：<script src="./js/api.js"></script>（Task5）-->
+  <!-- Task4 功能模組（coupon-viewer 須在 coupons-tab 之前，O1 wrap 依賴）-->
+  <script src="./js/coupon-viewer.js"></script>
+  <script src="./js/coupons-tab.js"></script>
 
 </body>
 </html>

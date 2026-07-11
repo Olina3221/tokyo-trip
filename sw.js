@@ -16,7 +16,7 @@
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v3';
+var CACHE_VERSION = 'v6';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -33,6 +33,25 @@ var PRECACHE_URLS = [
   // Task3（A2 SOP）：新增兩個功能模組；tripdata.js 內容全換靠 bump 生效
   './js/import-data.js',
   './js/trip-tab.js',
+  // Task4（A2 SOP）：折價券模組 + 18 張券圖；tripdata.js COUPONS 更新靠 bump v4 生效
+  './js/coupon-viewer.js',
+  './js/coupons-tab.js',
+  './img/coupons/biccamera.jpg',
+  './img/coupons/laox.jpg',
+  './img/coupons/cosmos.jpg',
+  './img/coupons/tsuruha.jpg',
+  './img/coupons/sundrug.jpg',
+  './img/coupons/satudora.jpg',
+  './img/coupons/edion.jpg',
+  './img/coupons/donki.jpg',
+  './img/coupons/keio.jpg',
+  './img/coupons/seibu-sogo.jpg',
+  './img/coupons/odakyu.jpg',
+  './img/coupons/daimaru.jpg',
+  './img/coupons/alpen.jpg',
+  './img/coupons/victoria.jpg',
+  './img/coupons/lotte-ginza.jpg',
+  './img/coupons/japandutyfree.jpg',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -3,6 +3,7 @@
 // 之後要加句子，直接在對應分類的陣列裡加物件即可。
 window.PHRASES = [
   {
+    id: "greetings",
     cat: "問候・基本",
     items: [
       { zh: "你好", ja: "こんにちは", romaji: "Konnichiwa" },
@@ -16,6 +17,7 @@ window.PHRASES = [
     ],
   },
   {
+    id: "dining",
     cat: "餐廳・點餐",
     items: [
       { zh: "四位", ja: "四人です", romaji: "Yonin desu" },
@@ -30,6 +32,7 @@ window.PHRASES = [
     ],
   },
   {
+    id: "shopping",
     cat: "購物・付款",
     items: [
       { zh: "這個多少錢？", ja: "これはいくらですか？", romaji: "Kore wa ikura desu ka?" },
@@ -42,6 +45,7 @@ window.PHRASES = [
     ],
   },
   {
+    id: "transport",
     cat: "交通・問路",
     items: [
       { zh: "車站在哪裡？", ja: "駅はどこですか？", romaji: "Eki wa doko desu ka?" },
@@ -53,6 +57,7 @@ window.PHRASES = [
     ],
   },
   {
+    id: "hotel",
     cat: "飯店・住宿",
     items: [
       { zh: "我有訂房", ja: "予約しています", romaji: "Yoyaku shite imasu" },
@@ -63,6 +68,7 @@ window.PHRASES = [
     ],
   },
   {
+    id: "emergency",
     cat: "緊急・求助",
     items: [
       { zh: "請幫幫我", ja: "助けてください", romaji: "Tasukete kudasai" },

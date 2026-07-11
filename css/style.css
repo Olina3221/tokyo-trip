@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════
    style.css — Tokyo Trip PWA
-   iOS 風格 / 直式 / 深色主題 / safe-area
+   iOS 風格 / 直式 / 淺色主題（Task8）/ safe-area
    ════════════════════════════════════════════════════════════
 
    z-index 層級規範（A7）
@@ -16,13 +16,14 @@
 
 /* ── CSS 變數 ─────────────────────────────────────────────── */
 :root {
-  /* 主題色（呼應 manifest background_color / theme_color = #1F2A5C）*/
-  --c-primary:     #1F2A5C;   /* manifest 主色：導覽列 / surface */
-  --c-bg:          #0D1426;   /* 主背景：深藍黑 */
-  --c-accent:      #4D7CF4;   /* 強調色：選中分頁 */
-  --c-text:        #F0F4FF;   /* 主文字：近白（帶藍色調）*/
-  --c-text-muted:  #7A8DB8;   /* 次要文字：灰藍 */
-  --c-divider:     rgba(255, 255, 255, 0.10);
+  /* 主題色（Task8 淺色主題；導覽列 / 品牌卡保留 --c-primary 深色）*/
+  --c-primary:     #1F2A5C;   /* 品牌深藍：導覽列 / 航班飯店卡 */
+  --c-bg:          #F5F6F8;   /* 主背景：淺色近白（Task8 淺色主題）*/
+  --c-accent:      #4D7CF4;   /* 強調填充色：選中 pill / 按鈕底（配白字）*/
+  --c-accent-text: #2E5BCC;   /* 文字用深階 accent（淺底 AA ≥4.5:1）*/
+  --c-text:        #1F2A5C;   /* 主文字：品牌深藍（高對比）*/
+  --c-text-muted:  #546080;   /* 次要文字：深灰藍（淺底 AA ~5:1）*/
+  --c-divider:     rgba(0, 0, 0, 0.12);
 
   /* safe-area（env() 回退 0px，確保桌面/模擬器正常）*/
   --safe-t: env(safe-area-inset-top,    0px);
@@ -135,7 +136,7 @@ body {
   display: flex;
   align-items: stretch;
   background-color: var(--c-primary);
-  border-top: 1px solid var(--c-divider);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);   /* 深底分隔線解耦：--c-divider 翻淺後在深底隱形 */
   /* iOS home bar 安全區（env safe-area-inset-bottom）*/
   padding-bottom: var(--safe-b);
 }
@@ -155,7 +156,7 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--c-text-muted);
+  color: #7A8DB8;   /* 導覽列解耦（2-C）：--c-primary 深底，硬編碼原灰藍值維持可讀 */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;   /* 消除 300ms 點擊延遲 */
   transition: color 0.12s ease;
@@ -285,7 +286,7 @@ body {
   background: none;
   border: none;
   font-size: 20px;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -423,7 +424,7 @@ body {
 }
 
 .bigtext-speak-btn:disabled {
-  background-color: var(--c-text-muted);
+  background-color: #7A8DB8;   /* B2 overlay 解耦：等值硬編碼，主題翻淺後 disabled 色不變 */
   opacity: 0.45;
   cursor: default;
 }
@@ -440,7 +441,7 @@ body {
   border-radius: 14px;
   font-size: 22px;
   background-color: rgba(255, 255, 255, 0.14);
-  color: var(--c-text);
+  color: #F0F4FF;   /* B1 overlay 解耦：等值硬編碼，深底關閉鈕字色不受主題翻轉 */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -485,7 +486,7 @@ body {
   flex-shrink: 0;
   min-height: 44px;
   padding: 0 18px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.06);   /* A1：白色 tint 在淺底隱形 → 深色 tint */
   border: none;
   border-radius: 22px;
   color: var(--c-text-muted);
@@ -542,7 +543,7 @@ body {
   padding: 3px 10px;
   border-radius: 8px;
   background-color: rgba(77, 124, 244, 0.22);
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   font-size: 13px;
   font-weight: 600;
   margin-left: 8px;
@@ -589,7 +590,7 @@ body {
 .trip-day-label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   letter-spacing: 0.06em;
   text-transform: uppercase;
   flex-shrink: 0;
@@ -628,7 +629,7 @@ body {
 
 /* ── 行程：項目列 ───────────────────────────────────────────── */
 .trip-item {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);   /* A2：白色 tint 在淺底隱形 → 深色 tint */
 }
 
 .trip-item:last-child {
@@ -648,13 +649,13 @@ body {
 }
 
 .trip-item-header:active {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(0, 0, 0, 0.06);   /* A3：白色 tint 在淺底隱形 → 深色 tint */
 }
 
 .trip-item-time {
   font-size: 15px;
   font-weight: 700;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   flex-shrink: 0;
   min-width: 46px;
   padding-top: 1px;
@@ -683,8 +684,8 @@ body {
   color: var(--c-text-muted);
   line-height: 1.65;
   white-space: pre-wrap;
-  background-color: rgba(0, 0, 0, 0.18);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(0, 0, 0, 0.04);   /* A4：深色底減淡，淺底下不過重 */
+  border-top: 1px solid rgba(0, 0, 0, 0.08);   /* A4：白色 tint 在淺底隱形 → 深色 tint */
 }
 
 .trip-item-detail[hidden] {
@@ -856,7 +857,7 @@ body {
   margin-bottom: 18px;
   line-height: 1.6;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);   /* A5：白色 tint 在淺底隱形 → 深色 tint */
   border-radius: 10px;
 }
 
@@ -898,13 +899,13 @@ body {
 /* 飯店：地圖鈕（外連，帶外連圖示文字）*/
 .trip-btn-map {
   background-color: rgba(77, 124, 244, 0.18);
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   border: 1px solid rgba(77, 124, 244, 0.35);
 }
 
-/* 飯店：大字鈕 */
+/* 飯店：大字鈕（A6：一般淺底用深色 tint；卡片內另有 A9 覆寫）*/
 .trip-btn-bigtext {
-  background-color: rgba(255, 255, 255, 0.10);
+  background-color: rgba(0, 0, 0, 0.07);   /* A6：白色 tint 在淺底隱形 → 深色 tint */
   color: var(--c-text);
 }
 
@@ -940,7 +941,7 @@ body {
   min-height: 44px;
   font-size: 22px;
   font-weight: 700;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   text-decoration: none;
   letter-spacing: 0.02em;
 }
@@ -976,10 +977,10 @@ body {
   margin: 0 12px 16px;
   padding: 14px 16px;
   font-size: 14px;
-  color: #E8B84B;
+  color: #8A6A00;   /* A7：#E8B84B 在淺底對比 ~1.9:1 → 深琥珀 #8A6A00 */
   line-height: 1.65;
-  background: rgba(232, 184, 75, 0.08);
-  border: 1px solid rgba(232, 184, 75, 0.20);
+  background: rgba(232, 184, 75, 0.10);
+  border: 1px solid rgba(138, 106, 0, 0.25);
   border-radius: 12px;
 }
 
@@ -1057,7 +1058,7 @@ body {
 
 .trip-import-textarea:focus {
   outline: none;
-  border-color: #7AA6FF;
+  border-color: #2E5BCC;   /* A10：#7AA6FF 在淺底偏弱 → 深化為 accent-text 值 */
   background-color: rgba(77, 124, 244, 0.10);
 }
 
@@ -1073,7 +1074,7 @@ body {
 .trip-import-error {
   margin-top: 10px;
   font-size: 14px;
-  color: #FF6B6B;
+  color: #C63A3A;   /* A8：#FF6B6B 在淺底 ~2.9:1 AA 不過 → 深紅 #C63A3A */
   line-height: 1.55;
 }
 
@@ -1100,7 +1101,7 @@ body {
   align-items: flex-start;
   gap: 14px;
   padding: 11px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);   /* 白色 tint 在淺底隱形 → 深色 tint */
   min-height: 44px;
 }
 
@@ -1126,7 +1127,7 @@ body {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   text-decoration: none;
   font-weight: 700;
   font-size: 18px;
@@ -1146,19 +1147,19 @@ body {
 
 .trip-btn-reimport {
   background-color: rgba(77, 124, 244, 0.18);
-  color: var(--c-accent);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
   border: 1px solid rgba(77, 124, 244, 0.32);
 }
 
 .trip-btn-export {
-  background-color: rgba(255, 255, 255, 0.10);
+  background-color: rgba(0, 0, 0, 0.07);   /* A6：白色 tint 在淺底隱形 → 深色 tint */
   color: var(--c-text);
 }
 
 .trip-btn-clear {
-  background-color: rgba(255, 90, 90, 0.12);
-  color: #FF6B6B;
-  border: 1px solid rgba(255, 90, 90, 0.28);
+  background-color: rgba(198, 58, 58, 0.10);   /* A8：深紅 tint */
+  color: #C63A3A;   /* A8：亮紅 ~2.9:1 → 深紅 #C63A3A */
+  border: 1px solid rgba(198, 58, 58, 0.28);
 }
 
 /* ── 匯出區 ─────────────────────────────────────────────────── */
@@ -1184,11 +1185,400 @@ body {
   padding: 10px 12px;
   border: 1px solid var(--c-divider);
   border-radius: 10px;
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(0, 0, 0, 0.04);   /* A5：白色 tint 在淺底隱形 → 深色 tint */
   color: var(--c-text-muted);
   font-size: 12px;
   font-family: monospace;
   resize: vertical;
   margin-bottom: 10px;
   box-sizing: border-box;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task8 — B1 A9：深藍品牌卡內文字解耦
+   trip-flight-card / trip-hotel-card 保留 --c-primary 深底，
+   但卡內所有文字 / 分隔線原本引用會翻轉的全域變數，需硬編碼為白色系
+   ════════════════════════════════════════════════════════════ */
+
+.trip-flight-card .trip-flight-no,
+.trip-flight-card .trip-flight-endpoint {
+  color: #F0F4FF;   /* A9：深藍卡主文字白色系 */
+}
+
+.trip-flight-card .trip-flight-date,
+.trip-flight-card .trip-flight-arrow-label {
+  color: #B0BDD8;   /* A9：深藍卡次要文字灰藍 */
+}
+
+.trip-flight-card .trip-flight-note {
+  color: #B0BDD8;
+  border-top-color: rgba(255, 255, 255, 0.10);   /* A9：divider 在深卡上 */
+}
+
+.trip-flight-card,
+.trip-hotel-card {
+  border-color: rgba(255, 255, 255, 0.12);   /* A9：dark-bg 上的 divider 邊框 */
+}
+
+.trip-hotel-card .trip-hotel-name,
+.trip-hotel-card .trip-hotel-address-ja {
+  color: #F0F4FF;   /* A9：深藍卡主文字白色系 */
+}
+
+.trip-hotel-card .trip-hotel-dates,
+.trip-hotel-card .trip-hotel-address-zh {
+  color: #B0BDD8;   /* A9：深藍卡次要文字 */
+}
+
+.trip-hotel-card .trip-hotel-note {
+  color: #B0BDD8;
+  background: rgba(255, 255, 255, 0.06);   /* A9：深卡內 note 區 */
+}
+
+/* 深藍卡內的大字鈕：保留原白色系按鈕樣式（A6 的全域改法不適用於深卡內）*/
+.trip-flight-card .trip-btn-bigtext,
+.trip-hotel-card .trip-btn-bigtext {
+  background-color: rgba(255, 255, 255, 0.10);
+  color: #F0F4FF;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task8 — B2 常用句分類 chips 導覽
+   DOM 由 js/phrases-tab.js 渲染；backend 定案 class 名見 Task8.api.md
+   ════════════════════════════════════════════════════════════ */
+
+/* chips 導覽列：sticky 置頂，橫向捲 */
+.phrases-chips-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--c-bg);
+  border-bottom: 1px solid var(--c-divider);
+  padding: 8px 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.phrases-chips-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 每顆 chip：觸控目標 ≥44px */
+.phrases-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  margin-right: 8px;
+  background: rgba(0, 0, 0, 0.06);   /* 淺底用深色系 tint（勿用白色 tint）*/
+  border: none;
+  border-radius: 22px;
+  color: var(--c-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.phrases-chip:last-child {
+  margin-right: 0;
+}
+
+.phrases-chip:active {
+  opacity: 0.7;
+}
+
+/* 選中 chip：accent 底白字，清楚 active 態 */
+.phrases-chip-active {
+  background: var(--c-accent);
+  color: #ffffff;
+}
+
+/* 列表切換容器（JS 整塊替換 innerHTML）*/
+.phrases-list-area {
+  width: 100%;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task4 — 折價券分頁（coupons tab）
+   DOM 由 js/coupons-tab.js 動態渲染；class 名由 Task4.api.md 定案
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 主容器 ─────────────────────────────────────────────────── */
+.coupons-container {
+  width: 100%;
+  padding-bottom: 32px;
+}
+
+/* ── 分類組 ──────────────────────────────────────────────── */
+.coupons-group {
+  margin-bottom: 4px;
+}
+
+/* 分類標題：sticky 跟著 .tab-section 的捲動 */
+.coupons-group-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--c-bg);
+  padding: 14px 16px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+
+/* ── 券卡（點整卡開檢視器）─────────────────────────────────
+   觸控目標 ≥ 44px（min-height 保證，實際隨圖高撐開更高）
+   ─────────────────────────────────────────────────────────── */
+.coupon-card {
+  display: flex;
+  align-items: stretch;
+  min-height: 130px;      /* 縮圖高度，同時滿足 ≥44px */
+  border-bottom: 1px solid var(--c-divider);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.10s ease;
+}
+
+.coupon-card:active {
+  background-color: rgba(77, 124, 244, 0.12);
+}
+
+/* ── 縮圖區 ─────────────────────────────────────────────────── */
+.coupon-card-thumb-wrap {
+  flex-shrink: 0;
+  width: 106px;
+  background-color: rgba(0, 0, 0, 0.05);   /* A5：白色 tint 在淺底隱形 → 深色 tint */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* loading="lazy" 屬性由 JS 設定；CSS 只控外觀 */
+.coupon-card-thumb {
+  display: block;
+  width: 100%;
+  height: 130px;
+  object-fit: cover;      /* 裁切填滿：預覽用途，全圖在檢視器 */
+}
+
+.coupon-card-thumb-error {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  padding: 8px 6px;
+  text-align: center;
+  line-height: 1.45;
+}
+
+/* ── 文字資訊區 ──────────────────────────────────────────── */
+.coupon-card-info {
+  flex: 1;
+  min-width: 0;           /* 防止長店名撐破 flex */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 12px 12px 10px;
+}
+
+/* 店名（主標）*/
+.coupon-card-store {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 折扣摘要 */
+.coupon-card-discount {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
+  line-height: 1.35;
+}
+
+/* 效期（null -> 「效期：依券面」由 JS 填入）*/
+.coupon-card-expiry {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+
+/* 徽章列 */
+.coupon-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* 需護照徽章 */
+.coupon-card-badge-passport {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: rgba(77, 124, 244, 0.18);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
+  border: 1px solid rgba(77, 124, 244, 0.35);
+}
+
+/* 地區警示（非東京門市，用橘黃色醒目標記）*/
+.coupon-card-badge-area {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: rgba(232, 184, 75, 0.15);
+  color: #8A6A00;   /* A7：#E8B84B 在淺底對比 ~1.9:1 → 深琥珀 #8A6A00 */
+  border: 1px solid rgba(138, 106, 0, 0.35);
+}
+
+/* 注意事項小字 */
+.coupon-card-notes {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  line-height: 1.45;
+  opacity: 0.80;
+}
+
+/* 資料載入失敗文案 */
+.coupons-error {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task4 — 折價券圖片檢視器 overlay（coupon-viewer.js）
+   JS 以 inline style display:none 初始隱藏；
+   開啟時清除 inline style → 此 CSS 的 display:flex 生效
+   O3：z-index = 110（導覽列 10 / bigtext-overlay 100 / 此 110）
+   ════════════════════════════════════════════════════════════ */
+
+.cv-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 110;           /* O3：蓋過 bigtext（100），不擋 Task5/6（120+）*/
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.96);  /* 近全黑：讓券圖最突顯 */
+  /* safe-area 四邊（沿 --safe-* 變數，Task1 規範）*/
+  padding-top:    var(--safe-t);
+  padding-right:  var(--safe-r);
+  padding-bottom: var(--safe-b);
+  padding-left:   var(--safe-l);
+}
+
+/* ── Header（店名 + 關閉鈕）────────────────────────────────── */
+.cv-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 16px;
+  min-height: 52px;
+  background-color: rgba(31, 42, 92, 0.90);  /* --c-primary 半透明 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);   /* B4 overlay 解耦：等值硬編碼 */
+}
+
+/* 店名小標 */
+.cv-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #F0F4FF;   /* B3 overlay 解耦：等值硬編碼，深底店名不受主題翻轉 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+/* 關閉鈕（觸控目標 ≥ 44px）*/
+.cv-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #F0F4FF;   /* B3 overlay 解耦：等值硬編碼，關閉鈕在深底不受翻轉影響 */
+  font-size: 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.cv-close-btn:active {
+  opacity: 0.55;
+}
+
+/* ── 圖片手勢層（O4：pinch/pan 事件在此 element 上）───────────
+   touch-action:none 告知瀏覽器由 JS 接管所有手勢；
+   JS 在此層 stopPropagation，不讓背景鎖吃掉縮放/平移手勢。
+   ─────────────────────────────────────────────────────────── */
+.cv-img-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;     /* 手勢完全交由 JS 處理 */
+}
+
+/* 主圖（fit-to-screen；初始 contain 完整顯示，縮放由 JS transform 控制）*/
+.cv-img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  /* transform-origin 維持 center center（CSS 預設）；
+     JS 動態設定 transform: scale() translate() */
+  transform-origin: center center;
+}
+
+/* 壞圖訊息（JS 在 img.onerror 時顯示此段）*/
+.cv-img-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  color: #7A8DB8;   /* B5 overlay 解耦：等值硬編碼，深底壞圖文案不受主題翻轉 */
+  text-align: center;
+  line-height: 1.6;
+  padding: 24px;
+  pointer-events: none;
 }

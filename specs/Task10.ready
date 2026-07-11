@@ -1,0 +1,7 @@
+Task10 spec 已完成：specs/Task10.spec.md（行程頁字級統一 + 單日細節下鑽）。
+
+★ 依賴閘：本任務必須等 Task8（淺色主題，正在改 css/style.css）完全閉環（Task8.tested 消費、結案清理完成）後，SA 才可開始影響分析。
+Task10 同樣要改 css/style.css 與 js/trip-tab.js，Task8 未閉環前不得動工，避免同檔衝突。
+字級統一以 Task8 完成後的淺色主題 css 為基礎；CACHE_VERSION 以開工時實際值 +1（預期 v6→v7）。
+
+PM 2026-07-11
