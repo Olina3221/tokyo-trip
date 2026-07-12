@@ -15,7 +15,7 @@
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v15';
+var CACHE_VERSION = 'v16';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [

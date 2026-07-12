@@ -528,12 +528,24 @@
             var listenerLang = (lang === 'zh') ? 'ja' : 'zh';
             _setSideResult(listenerLang, result, lang === 'zh' ? text : undefined);
 
-            // G4：自動播條件 = translate 為當前分頁 && 模式仍為 'talk'（Task13：兩方向共用）
-            var section = document.getElementById('tab-translate');
-            var curMode = _getMode();
-            if (section && !section.hidden && curMode === 'talk') {
-              App.speak(result, (lang === 'zh') ? 'ja-JP' : 'zh-TW');
-            }
+            // G4 + RC-I(b)：自動播在 150ms 延遲後執行（Task16）
+            // 目的：讓 iOS 音訊 session 有時間從 record 類別切回 playback（RC-I）
+            // _setSideResult 已在延遲前立即執行（顯示不延遲，只有發聲延遲）
+            // 守門移入回呼內重驗（Task16.impact.md §3.2＋§5.4）：
+            //   - G4 重驗（section && !section.hidden && curMode==='talk'）：
+            //     防切分頁/切模式後 150ms 到點仍在別的分頁發聲
+            //     （_abortTalk 的 speak.cancel 只清 tts.js 內部 16ms timer，清不到本 timer）
+            //   - 新增 _talkState==='idle' 守門：
+            //     堵延遲窗內使用者搶按 mic 後 speak 在錄音中發出的新回授窗
+            //     （此窗口是 (b) 延遲新引入的，現況無延遲時不存在）
+            // 手動播音路徑（重播鈕 L746/757）不加延遲（在手勢內、無 RC-I 場景，Task16 §R2.4）
+            setTimeout(function () {
+              var section = document.getElementById('tab-translate');
+              var curMode = _getMode();
+              if (section && !section.hidden && curMode === 'talk' && _talkState === 'idle') {
+                App.speak(result, (lang === 'zh') ? 'ja-JP' : 'zh-TW');
+              }
+            }, 150);
           })
           .catch(function (err) {
             _talkState = 'idle';
@@ -583,6 +595,14 @@
 
     // 先 cancel TTS（防喇叭聲進麥克風，spec §1）
     if (App.speak && typeof App.speak.cancel === 'function') App.speak.cancel();
+
+    // Task16 RC-H：唯一解鎖點（Task16.impact.md §2.2 三條理由）
+    // 1. 首次 tap 必走 idle 分支 → per-session 解鎖必然在此發生
+    // 2. cancel 之後才 unlock → 我們自己的防回授永遠清不掉解鎖 utterance（unlock 後無同步 cancel）
+    // 3. 仍在 click handler 同步脈絡內（在首個 async recorder.start 之前）= user gesture 成立
+    // 禁止「開頭＋cancel 後」雙呼叫（§2.3）：冪等旗標讓第一次發出即設，第二次 no-op，
+    // 但 cancel 後的那次才是有效的（開頭的空 utterance 已被 L585 cancel 清掉而失效）
+    if (App.speak && typeof App.speak.unlock === 'function') App.speak.unlock();
 
     App.recorder.start()
       .then(function () {

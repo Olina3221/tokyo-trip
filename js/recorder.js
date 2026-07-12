@@ -54,6 +54,10 @@
   var _buffers    = [];
 
   // ── 資源釋放（R5：四件套全包 try/catch）────────────────────────────────────
+  // Task16 RC-I(a)：回傳 audioCtx.close() 的 Promise，供 stop() await 音訊 session 釋放。
+  // abort() 忽略回傳值，同步契約零變更（Task12.api.md 契約保留）。
+  // close() 若 reject 或不存在，內部吞掉 rejection 並降級回傳 Promise.resolve()，
+  // 防呼叫端忽略回傳值時出現 unhandled rejection 噪音。
   function _release() {
     try { if (_processor) _processor.disconnect(); } catch (e) {}
     try { if (_source)    _source.disconnect();    } catch (e) {}
@@ -62,11 +66,20 @@
         _stream.getTracks().forEach(function (t) { t.stop(); });
       }
     } catch (e) {}
-    try { if (_audioCtx)  _audioCtx.close();       } catch (e) {}
+    // RC-I(a)：close() 回傳 Promise，吞掉 rejection，確保呼叫端不必處理 rejection
+    var closeP;
+    try {
+      closeP = (_audioCtx && typeof _audioCtx.close === 'function')
+        ? _audioCtx.close().catch(function () {})  // 吞掉 rejection（R5 精神）
+        : Promise.resolve();
+    } catch (e) {
+      closeP = Promise.resolve();  // close() 同步 throw 時降級
+    }
     _processor = null;
     _source    = null;
     _stream    = null;
     _audioCtx  = null;
+    return closeP;
   }
 
   // ── 線性內插重取樣 ─────────────────────────────────────────────────────────
@@ -185,10 +198,11 @@
     // R6：sampleRate 必須在 close 前讀取
     var sr = _audioCtx ? _audioCtx.sampleRate : 44100;
 
-    // R5：釋放資源
-    _release();
+    // RC-I(a)：取得釋放 Promise（audioCtx.close() 完成後才 resolve）
+    // R5：_release() 內部已包 try/catch + rejection 吞掉，此處不需額外 catch
+    var releaseP = _release();
 
-    // 合併 buffers
+    // 合併 buffers（編碼鏈零 diff，R1–R8 陷阱修法不動）
     var totalLen = 0;
     var i;
     for (i = 0; i < _buffers.length; i++) totalLen += _buffers[i].length;
@@ -214,7 +228,14 @@
     var pcm    = _floatTo16(down);
     var base64 = _toBase64(new Uint8Array(pcm.buffer));
 
-    return Promise.resolve({ base64: base64, durationMs: durationMs });
+    // RC-I(a)：等待音訊 session 釋放完成後才 resolve（讓 iOS 有時間切回 playback 再發 TTS）
+    // ~500ms race 逾時保險：close() 若在某 iOS 版本懸掛，不得讓整條翻譯流程卡死
+    // 錄音結果（base64/durationMs）由 race 保證一定送出，不因釋放失敗而丟失
+    var result = { base64: base64, durationMs: durationMs };
+    return Promise.race([
+      releaseP.then(function () { return result; }),
+      new Promise(function (resolve) { setTimeout(function () { resolve(result); }, 500); }),
+    ]);
   }
 
   // ── 掛載 App.recorder ───────────────────────────────────────────────────────
