@@ -1,11 +1,12 @@
 /**
- * js/api.js — Google API 呼叫層（Task5 翻譯；Task6 OCR 重用同一檔）
+ * js/api.js — Google API 呼叫層（Task5 翻譯；Task6 OCR 重用同一檔；Task12 Speech）
  *
  * 三層設計：
  *   金鑰層：window.APP_CONFIG?.GOOGLE_API_KEY 可選鏈（A4 契約延續）
  *   傳輸層：POST 封裝 + 錯誤碼枚舉 NO_KEY/OFFLINE/HTTP_403/HTTP_429/HTTP_OTHER
- *            + 共用 Google 錯誤分類器（Translation / Vision 錯誤體格式相同）
+ *            + 共用 Google 錯誤分類器（Translation / Vision / Speech 錯誤體格式相同）
  *   端點層：App.api.translate(text, source, target)
+ *            App.api.speechToText(base64Audio, languageCode)（Task12 追加）
  *            Task6 在此追加 App.api.ocr(...)，不動上兩層
  *
  * 掛 window.App.api；不含 TTS、不碰 DOM/localStorage。
@@ -116,11 +117,56 @@
     });
   }
 
+  /**
+   * App.api.speechToText(base64Audio, languageCode)
+   *
+   * @param {string} base64Audio  LINEAR16@16kHz 的 base64（App.recorder.stop() 產物）
+   * @param {string} languageCode 'cmn-Hant-TW'（中文）| 'ja-JP'（日文）
+   *                              ⚠️  語言碼兩套不可混用：STT 用 cmn-Hant-TW/ja-JP，
+   *                                  翻譯用 zh-TW/ja。見 Task12.api.md §語言碼對照。
+   * @returns {Promise<string>}   辨識文字；回應正常但無 results 時 resolve ''（空字串，
+   *                              沒聽清楚不是錯誤）
+   *          或 reject({ code: ErrorCode.*, message })
+   *
+   * 注意：空結果語意與 translate 相反——translate 空結果 reject HTTP_OTHER；
+   *       speechToText 2xx 但無 results 則 resolve ''，由呼叫端決定顯示文案。
+   */
+  function speechToText(base64Audio, languageCode) {
+    var key = _getKey();
+    if (!key) {
+      return Promise.reject({ code: ErrorCode.NO_KEY, message: '' });
+    }
+    var url = 'https://speech.googleapis.com/v1/speech:recognize?key='
+              + encodeURIComponent(key);
+    return _postJson(url, {
+      config: {
+        encoding:        'LINEAR16',
+        sampleRateHertz: 16000,
+        languageCode:    languageCode,
+      },
+      audio: { content: base64Audio },
+    }).then(function (data) {
+      // 2xx 有 results → 取第一段第一候選的 transcript
+      if (
+        data &&
+        data.results &&
+        data.results[0] &&
+        data.results[0].alternatives &&
+        data.results[0].alternatives[0]
+      ) {
+        return data.results[0].alternatives[0].transcript || '';
+      }
+      // 2xx 但無 results（沒聽清楚）→ resolve ''，不 reject
+      return '';
+    });
+  }
+
   // ── 掛載 ────────────────────────────────────────────────────────────────
   window.App = window.App || {};
   window.App.api = {
-    ErrorCode: ErrorCode,
-    translate:  translate,
+    ErrorCode:     ErrorCode,
+    translate:     translate,
+    speechToText:  speechToText,
     // Task6 在此追加：ocr: function(imageBase64, mimeType) { ... }
   };
 

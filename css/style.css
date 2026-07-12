@@ -1869,3 +1869,302 @@ body {
   color: #C63A3A;
   line-height: 1.55;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   Task12 — 翻譯分頁「對話語音模式」
+   DOM 由 js/translate-tab.js 動態渲染；class 名由 Task12.api.md 定案
+   注意：本節禁止引用 --fs-* type scale（Task10 授權僅 .trip-*）。
+         文字色用 --c-accent-text，不用 --c-accent（Task8 對比紀律）。
+         不新增 z-index ≥100 overlay；不動 .translate-* 既有選擇器。
+   ════════════════════════════════════════════════════════════ */
+
+/* ── segmented control「文字 ／ 對話」切換（flex-shrink:0）──────── */
+.translate-mode-seg {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding: 10px 16px 8px;
+  background-color: var(--c-bg);
+  border-bottom: 1px solid var(--c-divider);
+}
+
+.translate-mode-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--c-text-muted);
+  font-size: 15px;   /* hardcode，不用 --fs-* */
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.translate-mode-btn.translate-mode-btn-active {
+  background-color: var(--c-accent);
+  color: #ffffff;
+}
+
+.translate-mode-btn:active:not(.translate-mode-btn-active) {
+  opacity: 0.65;
+}
+
+
+/* ── 對話模式容器（.tab-section 直接 flex 子元素）────────────────
+   flex:1 + min-height:0：撐滿 section 剩餘高度（Task11 U2 紀律）；
+   overflow:hidden：防對話內容溢出造成 section 雙捲動
+   ─────────────────────────────────────────────────────────────── */
+.talk-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+
+/* ── 語言列（頂部靜態標示，flex-shrink:0）──────────────────────── */
+.talk-lang-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  font-size: 16px;   /* hardcode */
+  font-weight: 700;
+  color: var(--c-text);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--c-divider);
+  user-select: none;
+}
+
+
+/* ── 氣泡歷史區（唯一捲動區，flex:1）─────────────────────────── */
+.talk-history {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+
+/* ── 對話氣泡（共用基底）──────────────────────────────────────── */
+.talk-bubble {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 中→日氣泡（我說，靠右，accent 藍底白字）*/
+.talk-zh2ja {
+  align-self: flex-end;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+/* 日→中氣泡（對方說，靠左，白底深字）*/
+.talk-ja2zh {
+  align-self: flex-start;
+  background-color: #ffffff;
+  color: var(--c-text);
+  border: 1px solid var(--c-divider);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 原文小字（繼承氣泡 color；opacity 降調讓譯文更突出）*/
+.talk-bubble-orig {
+  font-size: 13px;   /* hardcode */
+  line-height: 1.4;
+  opacity: 0.65;
+}
+
+/* 譯文大字（≥22px 量級；hardcode；禁用 --fs-*，Task10 紀律）*/
+.talk-bubble-trans {
+  font-size: 22px;   /* hardcode，≥22px spec 要求 */
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+
+/* ── 氣泡動作鈕列（重播 🔊 / 大字 ⤢）────────────────────────── */
+.talk-bubble-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+/* 動作鈕共用（觸控目標 ≥44px）*/
+.talk-bubble-speak,
+.talk-bubble-bigtext {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;   /* hardcode */
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease;
+  white-space: nowrap;
+}
+
+.talk-bubble-speak:active,
+.talk-bubble-bigtext:active {
+  opacity: 0.65;
+}
+
+/* zh2ja 氣泡上的鈕：半透明白底白字（accent 底色背景）*/
+.talk-zh2ja .talk-bubble-speak,
+.talk-zh2ja .talk-bubble-bigtext {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* ja2zh 氣泡上的重播鈕：accent 淡底深字（Task8 對比紀律）*/
+.talk-ja2zh .talk-bubble-speak {
+  background: rgba(77, 124, 244, 0.10);
+  color: var(--c-accent-text);
+  border: 1px solid rgba(77, 124, 244, 0.25);
+}
+
+/* ja2zh 氣泡上的大字鈕：accent 填充白字（最重要動作，視覺最強）*/
+.talk-ja2zh .talk-bubble-bigtext {
+  background-color: var(--c-accent);
+  color: #ffffff;
+}
+
+
+/* ── 中央狀態區（flex-shrink:0；Task11 U2 紀律）────────────────── */
+.talk-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 12px 20px;
+  text-align: center;
+  border-top: 1px solid var(--c-divider);
+}
+
+.talk-status-idle {
+  font-size: 15px;   /* hardcode */
+  color: var(--c-text-muted);
+}
+
+.talk-status-processing {
+  font-size: 15px;   /* hardcode */
+  color: var(--c-text-muted);
+  font-style: italic;
+}
+
+
+/* ── 「錄音中」明顯動畫（補償無 interim 字幕，讓使用者感知有在錄音）──
+   animation 1：狀態文字閃爍（紅字脈動）
+   animation 2：active 麥克風鈕波紋擴散（在 .talk-mic-active 定義）
+   ─────────────────────────────────────────────────────────────── */
+@keyframes talk-recording-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.40; }
+}
+
+@keyframes talk-mic-ripple {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(198, 58, 58, 0.50);
+  }
+  55% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 10px rgba(198, 58, 58, 0);
+  }
+}
+
+/* 錄音中狀態文字（紅字 + 閃爍）*/
+.talk-status-recording {
+  font-size: 15px;   /* hardcode */
+  font-weight: 600;
+  color: #C63A3A;   /* Task11 A8 深紅；淡底 AA 可辨識不刺眼 */
+  animation: talk-recording-blink 1.1s ease-in-out infinite;
+}
+
+
+/* ── 底部麥克風鈕列（flex-shrink:0；Task11 U2 紀律）──────────────── */
+.talk-mic-row {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 14px;
+}
+
+/* 兩顆麥克風鈕共用（觸控目標遠大於 44px，建議 ≥60px，各占半寬）*/
+.talk-mic-zh,
+.talk-mic-ja {
+  flex: 1;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-size: 16px;   /* hardcode */
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease, background-color 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 中文鈕：accent 填充白字（我說，主動用途，視覺最重）*/
+.talk-mic-zh {
+  background-color: var(--c-accent);
+  color: #ffffff;
+  border: none;
+}
+
+/* 日文鈕：accent 淡底深字（對方說；與中文鈕視覺可區分）*/
+.talk-mic-ja {
+  background-color: rgba(77, 124, 244, 0.12);
+  color: var(--c-accent-text);   /* Task8 對比紀律 */
+  border: 2px solid rgba(77, 124, 244, 0.30);
+}
+
+.talk-mic-zh:active:not(:disabled),
+.talk-mic-ja:active:not(:disabled) {
+  opacity: 0.7;
+}
+
+.talk-mic-zh:disabled,
+.talk-mic-ja:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 錄音中按鈕（.talk-mic-active）：紅底白字＋波紋擴散脈動動畫 */
+.talk-mic-zh.talk-mic-active,
+.talk-mic-ja.talk-mic-active {
+  background-color: #C63A3A;
+  color: #ffffff;
+  border-color: #C63A3A;
+  animation: talk-mic-ripple 1.1s ease-in-out infinite;
+}

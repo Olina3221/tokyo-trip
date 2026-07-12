@@ -14,7 +14,7 @@
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v10';
+var CACHE_VERSION = 'v11';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -58,6 +58,8 @@ var PRECACHE_URLS = [
   './js/config.js',
   './js/api.js',
   './js/translate-tab.js',
+  // Task12（A2 SOP）：錄音封裝模組（載入順序 api.js → recorder.js → translate-tab.js）
+  './js/recorder.js',
 ];
 
 // ─── install：逐檔預快取，單檔失敗不炸整個 install（A4）────

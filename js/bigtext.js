@@ -50,6 +50,7 @@
   var _zhEl = null;
   var _romajiEl = null;
   var _isOpen = false;
+  var _lang = 'ja-JP';  // Task12：overlay 播音語言，每次 showBigText 必重設（§2.3）
 
   // ─── 關閉 overlay（B6：同時 cancel 語音）────────────────────
   function _closeOverlay() {
@@ -114,7 +115,8 @@
     }
     speakBtn.addEventListener('click', function () {
       if (App.speak && App.speak.isAvailable && jaEl && jaEl.textContent) {
-        App.speak(jaEl.textContent);
+        // Task12 授權例外：帶 _lang（預設 'ja-JP' 時行為與原本逐位元相同）
+        App.speak(jaEl.textContent, _lang);
       }
     });
     controls.appendChild(speakBtn);
@@ -165,6 +167,10 @@
 
     // ja 必填；空字串或 falsy → no-op（B3）
     if (!ja) return;
+
+    // Task12：每次呼叫都必須重設 _lang，防前次殘留（§2.3）
+    // 不帶 lang 的既有呼叫 → 預設 'ja-JP'，行為零變化
+    _lang = (params && params.lang) || 'ja-JP';
 
     // Lazy 建立（首次呼叫時）
     if (!_overlayEl) _createOverlay();
