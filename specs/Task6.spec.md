@@ -156,7 +156,8 @@ Feature 選擇已拍板 **`TEXT_DETECTION`＋`languageHints: ['ja']`**（招牌/
 
 ## 影響範圍分析（SA）
 
-> 全文見 `specs/Task6.impact.md`；此處為摘要。涉及範圍＝後端＋前端 UI，pipeline 走 backend → frontend → QA 全程。撰寫當下 sw.js 為 v12 → bump **v13**。
+> 全文見 `specs/Task6.impact.md`；此處為摘要。涉及範圍＝後端＋前端 UI，pipeline 走 backend → frontend → QA 全程。
+> **增量複核（2026-07-12，Task14/15 閉環後新基線）**：bump 改為 **v14→v15 兩檔三行**（sw.js `CACHE_VERSION`＋version.js `APP_VERSION` 逐字元相等＋`APP_VERSION_DATE`，Task14 SOP）；PRECACHE 現況 38 → 加 camera-tab.js 成 **39 筆**；檔案異動清單擴為**七檔**（§8 六檔＋`js/version.js`）。本文其餘 v13/38 舊數字以此為準（impact §0-bis 為權威）。
 
 ### 受影響的既有功能
 | 功能 | 頁面 / 函式 | 影響說明 | 需迴歸測試 |
@@ -165,7 +166,7 @@ Feature 選擇已拍板 **`TEXT_DETECTION`＋`languageHints: ['ja']`**（招牌/
 | 翻譯對話模式 | translate wrap 層 | 新層插外側，abort 錄音/cancel TTS 行為零變化（守門互斥，見 impact §2.2） | ✅ |
 | 券圖檢視器 / 大字展示 / TTS | coupons、常用句、翻譯、行程 | 元件全零 diff，camera 只重用（大字 ja-only＋lang、speak 單參） | ✅ |
 | API 呼叫層 | `api.js` | 只加 `ocr`（**單參數**，Task5.api.md 的 mimeType 草描作廢）；Vision 2xx 內嵌 `responses[0].error` 端點層自查 reject HTTP_OTHER，共用分類器零 diff | ✅ |
-| 離線快取 / App shell / 樣式 | sw.js、index.html、style.css | v13＋PRECACHE 38 筆；#tab-camera 內容＋一行 script；`.camera-*` 節 | ✅ |
+| 離線快取 / App shell / 樣式 | sw.js、version.js、index.html、style.css | **v15 兩檔三行**＋PRECACHE **39 筆**；#tab-camera 內容＋一行 script（version.js/#app-version/#update-toast 不動）；`.camera-*` 節 | ✅ |
 
 ### Backend 注意事項（詳見 impact §1/§3/§4/§6a/§7）
 - api.js 唯一允許刪除行＝掛載處預留註解；ocr 取值順序：內嵌 error → fullTextAnnotation → textAnnotations fallback → resolve ''（responses 整缺同樣 resolve ''）。
@@ -182,6 +183,6 @@ Feature 選擇已拍板 **`TEXT_DETECTION`＋`languageHints: ['ja']`**（招牌/
 - [ ] wrap 四層 call-through＋既有三層行為零變化（含：translate 錄音中切 camera→abort；常用句播音中進出 camera→不被 cancel）
 - [ ] camera track 四時機停止＋重按 camera 導覽鈕不中斷取景
 - [ ] mock Vision 六情境（成功/空 ''/內嵌 error/403/429/offline）＋降級路徑＋OCR 成功翻譯失敗（原文＋重試）
-- [ ] sw.js v13＋PRECACHE 38 筆＋冷 install
+- [ ] 版號機械閘：sw.js v15＋version.js APP_VERSION 逐字元相等＋DATE 當日＋PRECACHE 39 筆＋冷 install
 - [ ] 隱私機械判準：camera-tab.js 零 `localStorage`、零裸 `fetch`、objectURL 建撤配對、無 base64 落 log、git 無新增圖檔＋三段式掃描
 - [ ] 靜態掃描：`--fs-*` 越界 0、z-index ≥100 新增 0、`DOCUMENT_TEXT_DETECTION` 0、`cmn-Hant-TW` 只在 STT 語境

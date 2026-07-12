@@ -7,7 +7,7 @@
  *            + 共用 Google 錯誤分類器（Translation / Vision / Speech 錯誤體格式相同）
  *   端點層：App.api.translate(text, source, target)
  *            App.api.speechToText(base64Audio, languageCode)（Task12 追加）
- *            Task6 在此追加 App.api.ocr(...)，不動上兩層
+ *            App.api.ocr(imageBase64)（Task6 追加）
  *
  * 掛 window.App.api；不含 TTS、不碰 DOM/localStorage。
  *
@@ -161,13 +161,65 @@
     });
   }
 
+  /**
+   * App.api.ocr(imageBase64)
+   *
+   * @param {string} imageBase64  JPEG raw base64（不含 data:image/jpeg;base64, 前綴）
+   * @returns {Promise<string>}   辨識出的全文；2xx 但無文字時 resolve ''（非錯誤）
+   *          或 reject({ code: ErrorCode.*, message: string })
+   *
+   * Vision 特有：2xx 但 responses[0].error 存在 → reject HTTP_OTHER（逐圖內嵌錯誤）
+   * 取值優先序：responses[0].fullTextAnnotation.text
+   *             → responses[0].textAnnotations[0].description
+   *             → resolve ''（含 responses 缺失/空陣列）
+   */
+  function ocr(imageBase64) {
+    var key = _getKey();
+    if (!key) {
+      return Promise.reject({ code: ErrorCode.NO_KEY, message: '' });
+    }
+    var url = 'https://vision.googleapis.com/v1/images:annotate?key='
+              + encodeURIComponent(key);
+    return _postJson(url, {
+      requests: [{
+        image: { content: imageBase64 },
+        features: [{ type: 'TEXT_DETECTION' }],
+        imageContext: { languageHints: ['ja'] },
+      }],
+    }).then(function (data) {
+      var resp = data && data.responses && data.responses[0];
+      // 1. 2xx 但 responses[0].error 存在（逐圖內嵌錯誤）→ reject HTTP_OTHER
+      if (resp && resp.error) {
+        return Promise.reject({
+          code: ErrorCode.HTTP_OTHER,
+          message: resp.error.message || '',
+        });
+      }
+      // 2. fullTextAnnotation.text
+      if (resp && resp.fullTextAnnotation && resp.fullTextAnnotation.text) {
+        return resp.fullTextAnnotation.text;
+      }
+      // 3. fallback textAnnotations[0].description
+      if (
+        resp &&
+        resp.textAnnotations &&
+        resp.textAnnotations[0] &&
+        resp.textAnnotations[0].description
+      ) {
+        return resp.textAnnotations[0].description;
+      }
+      // 4. 皆無（含 responses 缺失/空陣列）→ resolve ''（沒辨識到文字，非錯誤）
+      return '';
+    });
+  }
+
   // ── 掛載 ────────────────────────────────────────────────────────────────
   window.App = window.App || {};
   window.App.api = {
-    ErrorCode:     ErrorCode,
-    translate:     translate,
-    speechToText:  speechToText,
-    // Task6 在此追加：ocr: function(imageBase64, mimeType) { ... }
+    ErrorCode:    ErrorCode,
+    translate:    translate,
+    speechToText: speechToText,
+    ocr:          ocr,
   };
 
 }());

@@ -30,9 +30,10 @@
 | — | Task13 | 對話模式雙向自動播音：日→中辨識翻譯後自動用中文語音（zh-TW）唸出（Olina 實機回饋；翻轉 Task12 spec §3「日→中不自動播」決定） | 是 | ✅ 已完成（2026-07-12 QA PASS，impact §8 機械判準全過；G4 守門共用、中→日零變更、sw.js v12；spec: `Task13.spec.md`；真機 zh-TW 發聲由 Olina 部署後流程外驗收） |
 | — | Task14 | 版號可視化＋SW 更新機制可靠化（畫面版號徽章 `vN · MM/DD`＋更新提示一鍵 reload＋reg.update() 檢查時機；Olina 實機回報「刷 10 次拿不到新版、看不出版本」） | 否 | ✅ 已完成（2026-07-12 QA PASS，機械判準 12 項全過 0 FAIL；版號徽章 v13 · 07/12、SW 更新機制（updateViaCache none＋visibilitychange/pageshow 雙觸發＋雙路 toast＋首裝不彈）、location.reload 全 repo 恰一處、sw.js v13＋PRECACHE 38 筆；bump SOP 自此為兩檔三行永續紀律；spec: `Task14.spec.md`；真機更新體感由 Olina 部署後流程外確認） |
 | — | Task15 | 對話面對面 UI（翻譯對話模式改為上下切半面對面版面：上半旋轉 180° 給日方、兩側各自麥克風與結果、保留雙向自動播音） | 否 | ✅ 已完成（2026-07-12 QA PASS，0 FAIL；面對面雙側槽＋上半 rotate(180deg)、文字模式零 diff、G4 自動播逐字保留、氣泡歷史退場、sw.js v14 兩檔同步；spec: `Task15.spec.md`；面對面實機手感/真對話 E2E 由 Olina 部署後流程外驗收） |
-| **1（下一個）** | **Task6** | **拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯）** | 是 | ⏳ 待 SA（spec `Task6.spec.md` 有效不動；**`Task6.ready` 已重建**（2026-07-12，Task15 閉環後依定案執行），SA 以既有 `Task6.impact.md` 為基底做增量複核（Task14/15 已改機械基線）；**開工時 bump v14→v15，兩檔三行 SOP**（version.js APP_VERSION＋DATE＋sw.js CACHE_VERSION）、PRECACHE 現況 38 筆→加 camera-tab.js 成 39） |
-| 2 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |
+| — | Task6 | 拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯） | 是 | ✅ 已完成（2026-07-12 QA PASS，0 FAIL；camera-tab.js 取景/黏性降級/縮圖/生命週期＋api.js ocr 端點＋wrap 四層＋sw.js/version.js v15 兩檔同步＋PRECACHE 39＋隱私機械判準全過；spec: `Task6.spec.md`；真機 OCR E2E 由 Olina 部署後流程外驗收） |
+| **1（下一個）** | **Task7** | **GitHub Pages 部署 + iPhone 真機驗收清單** | — | 排隊（原始需求功能面至此全數閉環，Task7 為最後收尾） |
 | 備註 | （未立案） | KML 地圖功能（行程地點地圖化） | — | 待 Olina 定案後由 PM 另立 Task 編號，暫不進佇列 |
+| 備註 | （未立案） | index.html 殘留 Task1 `.placeholder-card` 佔位 HTML 清理（Task6 frontend 觀察：各分頁佔位卡被 JS 建構 DOM 覆蓋，視覺零影響、純結構冗餘） | — | **不單獨立 Task**（零行為增益卻要 bump 版本＋全輪 QA，行前不值）；日後任何動 index.html 的 Task 由 PM 把清理**明列進該 spec 範圍**一併做（不得「順手」，Non-scope 護欄） |
 
 拆解原則：先做離線可跑的（Task1–4），後做需網路金鑰的難功能（Task5–6），最後部署（Task7）。每個 Task 小到 QA 能單輪 PASS/FAIL。
 
@@ -75,6 +76,8 @@
 開工註記（2026-07-12）：**Task15 spec 已完成**（`Task15.spec.md`）。Olina 實機後拍板：對話模式改為 Google 翻譯式**面對面版面**——螢幕上下切半、上半（日方）整容器 `rotate(180deg)`、兩側各自麥克風鈕/辨識原文/譯文大字/狀態/動作鈕，**雙向自動播音（Task13）完整保留**（G4 守門與 lang 選擇零語意變更，只改文字顯示位置）。PM 定案 v1：譯文顯示在**聽話者那一側**（大字 ≥28px 隔桌可讀）、每側只留最近一則（氣泡歷史 `_bubbles`/`_appendBubble`/`.talk-history` 退場）、API 錯誤一律路由下半（中文，機主處理）、空辨識顯示在說話側（雙語文案）、大字 overlay 不旋轉（「拿起手機展示」定位，bigtext.js 零 diff）、模式切換 segmented 沿用現位不搬家、`.talk-lang-bar` 靜態語言列退場改由每側自帶語言標示。文字模式（Task5）零 diff。對話 DOM 大改，backend 必寫 `Task15.api.md` 供 frontend。bump SOP 兩檔三行：v13→v14。Olina 已聲明截圖僅供概念、部署後實機再微調（微調不阻擋本輪驗收）。`Task15.ready` 已建，待 SA。Task6 的 `Task6.ready` 重建維持在 Task15 閉環後（見佇列表）。
 
 閉環註記（2026-07-12）：**Task15 已正式閉環**（QA PASS，0 FAIL；sw.js/version.js 現為 v14 兩檔同步；對話模式現為**面對面雙側版面**——上半 `.talk-side-ja` 整容器 rotate(180deg)、譯文寫聽話側 ≥28px 隔桌可讀、覆蓋式每側只留最近一則（氣泡歷史退場）、錯誤路由 API→下半 zh／空辨識→說話側、雙向自動播 G4 逐字保留；文字模式 Task5 全區零 diff；「旋轉容器 fixed 陷阱」入 SYSTEM_MAP 人工補充區為永續紀律）。面對面實機手感、旋轉側捲動/大字易用性、真對話 E2E 由 Olina 部署後 iPhone 流程外驗收（微調不阻擋、屬後續 Task）。剩餘佇列：**Task6（拍照 OCR）為下一個**——`Task6.ready` 已重建交 SA 增量複核，開工時 bump v14→v15 依兩檔三行 SOP、PRECACHE 38→39（+camera-tab.js）；其後 Task7（部署驗收）；KML 地圖待 Olina 定案另立（roadmap 備註）。
+
+閉環註記（2026-07-12）：**Task6 已正式閉環**（QA PASS，0 FAIL；sw.js/version.js 現為 v15 兩檔同步、PRECACHE 39 筆；拍照分頁上線——camera-tab.js（getUserMedia 即時取景，失敗**黏性降級**原生 `<input capture>`；相簿並存；一步縮圖長邊 1600；track 停止四時機；影像只存記憶體零落地）＋api.js 端點層追加 `ocr(imageBase64)`（TEXT_DETECTION＋languageHints:['ja']，空結果 resolve ''）；wrap 鏈現為四層 coupon-viewer → camera-tab → translate-tab → bigtext → app.js，見 SYSTEM_MAP）。真機 OCR E2E（referer 鎖 github.io，localhost 必 403）與取景視覺細節由 Olina 部署後 iPhone 流程外驗收。**Olina 原始需求（翻譯/語音對話/大字/常用句/拍照辨識/行程航班飯店/離線/折價券）功能面至此全數閉環**。剩餘佇列：**Task7（GitHub Pages 部署＋iPhone 真機驗收清單）為最後一項**；KML 地圖待 Olina 定案另立（roadmap 備註）。
 
 ## 檔案
 

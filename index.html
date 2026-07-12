@@ -49,14 +49,8 @@
     </div>
   </section>
 
-  <!-- 拍照（Task6 實作）-->
-  <section id="tab-camera" class="tab-section" hidden>
-    <div class="placeholder-card">
-      <span class="placeholder-icon" aria-hidden="true">📷</span>
-      <h1 class="placeholder-title">拍照</h1>
-      <p class="placeholder-desc">Task6 會實作</p>
-    </div>
-  </section>
+  <!-- 拍照（Task6 實作）— DOM 由 camera-tab.js 動態建構 -->
+  <section id="tab-camera" class="tab-section" hidden></section>
 
   <!-- 行程（Task3 實作）-->
   <section id="tab-trip" class="tab-section" hidden>
@@ -148,6 +142,8 @@
   <!-- Task12 錄音封裝（api.js 之後、translate-tab.js 之前）-->
   <script src="./js/recorder.js"></script>
   <script src="./js/translate-tab.js"></script>
+  <!-- Task6 OCR 分頁（translate-tab 之後，coupon-viewer 之前；wrap 鏈第四層）-->
+  <script src="./js/camera-tab.js"></script>
   <!-- Task4 功能模組（coupon-viewer 須在 coupons-tab 之前，O1 wrap 依賴）-->
   <script src="./js/coupon-viewer.js"></script>
   <script src="./js/coupons-tab.js"></script>

@@ -2194,3 +2194,392 @@ body {
 #update-toast[hidden] {
   display: none;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   Task6 — 拍照辨識分頁（camera tab）
+   DOM 由 js/camera-tab.js 動態渲染；class 名由 Task6.api.md 定案
+   字級全程硬編碼，禁用 --fs-*（Task10 授權僅 .trip-*）
+   取景區深底文字/框線：區域硬編碼色（Task8 解耦紀律）
+   底部操作列 flex-shrink:0（Task11 U2 紀律）
+   不新增 z-index ≥100（取景為分頁內容非 overlay）
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 主容器 ─────────────────────────────────────────────────── */
+.camera-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--c-bg);
+  overflow: hidden;
+}
+
+/* ── 語言列（靜態「日文 → 中文」）──────────────────────────── */
+.camera-lang-bar {
+  flex-shrink: 0;
+  padding: 11px 16px;
+  font-size: 15px;   /* hardcode，禁用 --fs-* */
+  font-weight: 700;
+  color: var(--c-accent-text);   /* 文字色：Task8 對比紀律 */
+  text-align: center;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--c-divider);
+  letter-spacing: 0.04em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── 取景區（live 模式＋降級模式共用容器）──────────────────────
+   深底色硬編碼（Task8 解耦紀律：深底不引用 --c-bg/--c-text 等
+   會翻轉的全域變數，保持視訊背景穩定）
+   ─────────────────────────────────────────────────────────── */
+.camera-viewfinder-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background-color: #0d0d0d;    /* 硬編碼深底：視訊未就緒時背景 */
+}
+
+/* 即時預覽 video（絕對定位填滿取景區）*/
+.camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 掃描框四角（gradient 技法；深底解耦：色值硬編碼不引用變數）
+   左上橫＋左上縱 / 右上橫＋右上縱 / 左下橫＋左下縱 / 右下橫＋右下縱 */
+.camera-scan-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -62%);
+  width: 62%;
+  aspect-ratio: 1;
+  /* 四角角標色 #4D7CF4（= --c-accent 等值）硬編碼，深底解耦 */
+  background:
+    linear-gradient(#4D7CF4, #4D7CF4) 0     0    / 24px 3px  no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 0     0    / 3px  24px no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 100%  0    / 24px 3px  no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 100%  0    / 3px  24px no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 0     100% / 24px 3px  no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 0     100% / 3px  24px no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 100%  100% / 24px 3px  no-repeat,
+    linear-gradient(#4D7CF4, #4D7CF4) 100%  100% / 3px  24px no-repeat;
+  pointer-events: none;
+}
+
+/* 取景提示文字（live 模式；深底白字硬編碼）*/
+.camera-scan-hint {
+  position: absolute;
+  top: 71%;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  font-size: 13px;   /* hardcode */
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);   /* 硬編碼：深底白字 */
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+/* 降級佔位（JS 初始設 display:none；降級時清除 inline style → 此 flex 生效）
+   position:absolute 填滿取景區；深底背景硬編碼（Task8 解耦紀律）             */
+.camera-fallback-holder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 24px;
+  background-color: #1a1a1a;   /* 硬編碼深底，Task8 解耦紀律 */
+}
+
+/* 降級：相機圖示佔位（比照截圖2 中央相機圖示，CSS 注入）*/
+.camera-fallback-holder::before {
+  content: '📷';
+  font-size: 72px;
+  line-height: 1;
+  opacity: 0.55;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 降級說明文字（深底白字硬編碼，Task8 解耦紀律）*/
+.camera-fallback-text {
+  font-size: 15px;   /* hardcode */
+  color: rgba(255, 255, 255, 0.72);   /* 硬編碼深底文字 */
+  text-align: center;
+  line-height: 1.6;
+  font-weight: 500;
+  max-width: 280px;
+}
+
+/* ── 處理中視圖（初始 display:none；_showView('processing') 清除）── */
+.camera-processing-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 24px;
+  background-color: var(--c-bg);
+}
+
+/* 辨識中 spinner（CSS 偽元素，不需 DOM 節點）*/
+.camera-processing-area::before {
+  content: '';
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(77, 124, 244, 0.18);
+  border-top-color: #4D7CF4;   /* hardcode = --c-accent 等值 */
+  border-radius: 50%;
+  animation: camera-spin 0.85s linear infinite;
+}
+
+@keyframes camera-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 狀態文字（「辨識中…」「翻譯中…」）*/
+.camera-status-text {
+  font-size: 17px;   /* hardcode */
+  color: var(--c-text-muted);
+  text-align: center;
+  line-height: 1.55;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ── 結果視圖（初始 display:none；_showView('result') 清除）── */
+.camera-result-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  padding-bottom: 24px;
+  background-color: var(--c-bg);
+}
+
+/* 共用結果卡（原文卡＋譯文卡）*/
+.camera-result-card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--c-divider);
+  padding: 14px 16px;
+}
+
+/* 卡片標籤（「原文（日文）」「翻譯（中文）」）*/
+.camera-result-card-label {
+  font-size: 11px;   /* hardcode */
+  font-weight: 700;
+  color: var(--c-text-muted);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* 原文（日文 OCR 結果）*/
+.camera-result-orig-text {
+  font-size: 16px;   /* hardcode */
+  color: var(--c-text);
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 譯文（中文，字大好讀，主體）*/
+.camera-result-trans-text {
+  font-size: 22px;   /* hardcode；字大好讀，中文主體 */
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 錯誤訊息（沿用 Task11 深紅 #C63A3A）*/
+.camera-result-error {
+  padding: 12px 16px;
+  background-color: rgba(198, 58, 58, 0.08);
+  border: 1px solid rgba(198, 58, 58, 0.25);
+  border-radius: 12px;
+  font-size: 14px;   /* hardcode */
+  color: #C63A3A;
+  line-height: 1.55;
+}
+
+/* ── 動作鈕（共用基底；觸控目標 ≥44px）──────────────────────── */
+.camera-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;   /* hardcode */
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+  background-color: rgba(0, 0, 0, 0.07);
+  color: var(--c-text);
+}
+
+.camera-action-btn:active:not(:disabled) {
+  opacity: 0.60;
+}
+
+.camera-action-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* 重試翻譯（全寬，accent 淡底）*/
+.camera-retry-trans-btn {
+  background-color: rgba(77, 124, 244, 0.12);
+  color: var(--c-accent-text);   /* 文字用深階 accent（Task8 對比紀律）*/
+  border: 1px solid rgba(77, 124, 244, 0.28);
+  width: 100%;
+}
+
+/* 大字鈕（原文＋譯文）：主 accent 填充白字 */
+.camera-bigtext-orig-btn,
+.camera-bigtext-trans-btn {
+  background-color: var(--c-accent);
+  color: #ffffff;
+}
+
+/* 播音鈕：accent 淡底深字 */
+.camera-speak-btn {
+  background-color: rgba(77, 124, 244, 0.12);
+  color: var(--c-accent-text);   /* 文字用深階 accent（Task8 對比紀律）*/
+  border: 1px solid rgba(77, 124, 244, 0.28);
+}
+
+/* 重拍鈕：紅色系，視覺上區分為「回頭」操作 */
+.camera-retake-btn {
+  background-color: rgba(198, 58, 58, 0.10);
+  color: #C63A3A;
+  border: 1px solid rgba(198, 58, 58, 0.28);
+}
+
+/* 動作鈕容器（flex-wrap 換行，兩欄自然排列）*/
+.camera-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── 底部操作列（flex-shrink:0，Task11 U2 紀律：底部操作列不得被壓縮）── */
+.camera-bottom-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 14px 32px;
+  background-color: #ffffff;
+  border-top: 1px solid var(--c-divider);
+  min-height: 88px;
+}
+
+/* 相簿鈕（左側，方框圖示＋「相簿」標籤）*/
+.camera-album-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 60px;
+  min-height: 60px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease;
+}
+
+.camera-album-btn:active {
+  opacity: 0.55;
+}
+
+.camera-album-btn:disabled {
+  opacity: 0.30;
+  cursor: default;
+}
+
+/* 按鈕圖示（emoji）*/
+.camera-btn-icon {
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 按鈕文字標籤 */
+.camera-btn-label {
+  font-size: 11px;   /* hardcode，底部列標籤 */
+  font-weight: 600;
+  color: var(--c-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* 大快門鈕（中央，圓形，直徑 72px ≥64px；藍色填充白內環）*/
+.camera-shutter-btn {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--c-accent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease, transform 0.10s ease;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(77, 124, 244, 0.45);
+}
+
+/* 快門鈕白色內環（視覺設計層）*/
+.camera-shutter-btn::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.65);
+  pointer-events: none;
+}
+
+.camera-shutter-btn:active:not(:disabled) {
+  opacity: 0.72;
+  transform: scale(0.92);
+}
+
+.camera-shutter-btn:disabled {
+  background-color: rgba(77, 124, 244, 0.32);
+  cursor: default;
+  box-shadow: none;
+}

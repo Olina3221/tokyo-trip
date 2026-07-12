@@ -15,7 +15,7 @@
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v14';
+var CACHE_VERSION = 'v15';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -63,6 +63,8 @@ var PRECACHE_URLS = [
   './js/recorder.js',
   // Task14（A2 SOP）：版本常數模組（version.js → config.js → ... → app.js 載入順序）
   './js/version.js',
+  // Task6（A2 SOP）：拍照 OCR 分頁（載入順序 translate-tab.js → camera-tab.js → coupon-viewer.js）
+  './js/camera-tab.js',
 ];
 
 // ─── install：逐檔預快取，單檔失敗不炸整個 install（A4）────
