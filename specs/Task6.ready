@@ -1,0 +1,18 @@
+# Task6.ready — PM → SA 信號（重建）
+
+> 建立：2026-07-12（Task15 已閉環，依 Task14 閉環定案於此時點重建；原 `Task6.sa_done` 於 Task14 插隊時由 PM 收回）
+> spec：`Task6.spec.md`（有效不動，拍照 OCR：相機/相簿 → Cloud Vision → 翻譯）
+> SA 任務：以既有 `Task6.impact.md` 為基底做**增量複核**（不必從零重做），完成後刪本檔、重建 `Task6.sa_done`。
+
+## 增量複核重點（Task14／Task15 已改動的機械基線）
+
+1. **版本序與 bump SOP（本輪最重要註記）**：CACHE_VERSION 現況 **v14**（Task14 bump v13、Task15 bump v14）。Task6 開工時 bump **v14→v15**，且自 Task14 起必須「**兩檔三行**」同步：`js/version.js` 的 `APP_VERSION`（與 `sw.js` `CACHE_VERSION` **逐字元相等**＝QA 每輪機械閘）＋`APP_VERSION_DATE`（MM/DD，bump 當日）＋`sw.js` 的 `CACHE_VERSION`。舊 impact 若仍寫「只改 sw.js」即為過時基線。權威見 SYSTEM_MAP 人工補充區「bump SOP＝兩檔三行」。
+2. **PRECACHE_URLS 現況 38 筆**（Task14 +version.js）；Task6 加 `camera-tab.js` 後成 **39 筆**。
+3. **app.js 基線已變**：Task14 落地 SW 更新機制段（updateViaCache:'none'、_triggerUpdate、雙路 toast）——舊 impact「app.js 零 diff」判準需更新。
+4. **index.html 基線已變**：Task14 加 version.js（全站 script 最前）＋ `#app-version`／`#update-toast` 兩 DOM。
+5. **translate-tab.js**：Task15 對話模式已改面對面雙側版面（wrap 鏈中層守門行為不變）；Task6 落地後 wrap 鏈成四層（coupon-viewer → camera-tab → translate-tab → bigtext → app.js），既有分析仍有效、複核即可。
+6. **旋轉容器 fixed 陷阱**（Task15 起永續紀律，SYSTEM_MAP 人工補充區）：camera 分頁不在旋轉容器內、預期不受影響，複核時確認即可。
+
+## roadmap 佇列（PM 現況）
+
+Task6（本任務，下一個）→ Task7（GitHub Pages 部署驗收）→ KML 地圖（待 Olina 定案後另立 Task，不佔佇列）。

@@ -1,5 +1,5 @@
 /**
- * js/translate-tab.js — 翻譯分頁（Task5 文字翻譯 + Task12 對話語音模式）
+ * js/translate-tab.js — 翻譯分頁（Task5 文字翻譯 + Task12 對話語音模式 + Task15 面對面版面）
  *
  * 依賴（依 index.html 載入順序）：
  *   app.js → tts.js → bigtext.js → api.js → recorder.js → translate-tab.js
@@ -15,34 +15,36 @@
  *
  * Task12 追加：
  *   - 頂部 segmented「文字 / 對話」切換（外殼），不改 Task5 任何行為
- *   - 對話模式：錄音→STT→翻譯→氣泡→TTS
+ *   - 對話模式：錄音→STT→翻譯→TTS（Task13 雙向自動播）
  *   - tokyotrip.translateMode 記憶（預設 'talk'）
  *   - wrap App.showTab 三層（coupon-viewer→translate-tab→bigtext→原函式）
  *
- * DOM/class 定義（完整見 Task12.api.md）：
+ * Task15 對話模式版面改版（面對面）：
+ *   - _buildTalkDOM 重寫為上半（日方旋轉）/ 下半（Olina 正向）雙側結構
+ *   - 覆蓋式雙槽（退場氣泡歷史）、分側狀態文案與錯誤路由
+ *   - G4 自動播守門語意零變更，顯示位置改聽話者側
+ *
+ * DOM/class 定義（完整見 Task15.api.md）：
  * ── 外殼 ──
  *   .translate-mode-seg          segmented control（flex-shrink:0）
  *   .translate-mode-btn          段落按鈕（共兩個）
  *   .translate-mode-btn-active   作用中按鈕
  *   .translate-container         文字模式容器（Task5 既有）
- *   .talk-container              對話模式容器（Task12 新增）
- * ── 對話模式 ──
- *   .talk-lang-bar               語言列（flex-shrink:0）
- *   .talk-history                氣泡歷史捲動區（flex:1, overflow-y:auto）
- *   .talk-bubble                 單則氣泡
- *   .talk-zh2ja                  中→日氣泡（靠右）
- *   .talk-ja2zh                  日→中氣泡（靠左）
- *   .talk-bubble-orig            原文小字
- *   .talk-bubble-trans           譯文大字
- *   .talk-bubble-actions         氣泡動作鈕列
- *   .talk-bubble-speak           重播鈕
- *   .talk-bubble-bigtext         大字鈕
- *   .talk-status                 狀態區（flex-shrink:0）
- *   .talk-status-idle / .talk-status-recording / .talk-status-processing
- *   .talk-mic-row                底部麥克風鈕列（flex-shrink:0）
- *   .talk-mic-zh                 中文麥克風鈕
- *   .talk-mic-ja                 日文麥克風鈕
- *   .talk-mic-active             錄音中按鈕狀態
+ *   .talk-container              對話模式容器（Task12/15）
+ * ── 面對面對話模式（Task15）──
+ *   .talk-side                   每側共用基底 class
+ *   .talk-side-ja                上半（日方），CSS rotate(180deg)
+ *   .talk-side-zh                下半（Olina，正向）
+ *   .talk-side-lang              語言標示（「日本語」／「中文」）
+ *   .talk-side-orig              辨識原文小字（前綴「認識：」／「辨識：」）
+ *   .talk-side-result            譯文大字槽（overflow-y:auto，覆蓋更新）
+ *   .talk-side-status            狀態列文案
+ *   .talk-side-actions           動作鈕容器
+ *   .talk-side-speak             🔊 重播 / 再生鈕
+ *   .talk-side-bigtext           ⤢ 大字 / 大きく鈕
+ *   .talk-side-mic               麥克風鈕（每側各一）
+ *   .talk-mic-active             錄音中麥克風鈕 class（class 名保留，keyframes 重用）
+ *   .talk-divider                中央分隔帶（含 ⇄ 圖示）
  */
 (function () {
   'use strict';
@@ -317,11 +319,10 @@
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // Task12 對話模式
+  // Task12/15 對話模式
   // ════════════════════════════════════════════════════════════════════════════
 
   var MODE_KEY     = 'tokyotrip.translateMode';
-  var MAX_BUBBLES  = 50;
 
   // STT 語言碼（與 translate / TTS 碼分開，§4.3 grep 判準）
   var STT_LANG = {
@@ -348,7 +349,10 @@
   var _talkState    = 'idle';
   var _talkLang     = null;   // 'zh' | 'ja'，本次錄音語言
   var _talkTimer    = null;   // 60 秒計時器
-  var _bubbles      = [];     // 記憶體氣泡歷史（不進 localStorage）
+
+  // 每側最新結果（記憶體，不進 localStorage）
+  var _side = { zh: { result: '' }, ja: { result: '', origZh: '' } };
+
   var _talkEl       = {};     // 對話 DOM 參照
   var _talkDOMBuilt = false;
 
@@ -378,153 +382,129 @@
     if (_talkDOMBuilt) _updateTalkUI();
   }
 
-  // ── 對話 UI 狀態更新 ───────────────────────────────────────────────────────
+  // ── 對話 UI 狀態更新（驅動兩側）──────────────────────────────────────────
   function _updateTalkUI() {
     if (!_talkDOMBuilt) return;
 
-    var idle       = (_talkState === 'idle');
-    var recording  = (_talkState === 'recording');
-    var processing = (_talkState === 'recognizing' || _talkState === 'translating');
+    var idle        = (_talkState === 'idle');
+    var recording   = (_talkState === 'recording');
+    var unavailable = (!App.recorder || !App.recorder.isAvailable);
 
-    // 狀態區
-    _talkEl.statusIdle.style.display      = idle      ? '' : 'none';
-    _talkEl.statusRecording.style.display = recording  ? '' : 'none';
-    _talkEl.statusProcessing.style.display = processing ? '' : 'none';
+    // 麥克風鈕 disabled 規則（G2/G5 沿用；unavailable 永久 disabled）
+    _talkEl.micZh.disabled = (_talkState === 'recognizing' || _talkState === 'translating')
+                             || (recording && _talkLang === 'ja') || unavailable;
+    _talkEl.micJa.disabled = (_talkState === 'recognizing' || _talkState === 'translating')
+                             || (recording && _talkLang === 'zh') || unavailable;
 
-    if (_talkState === 'recognizing') {
-      _talkEl.statusProcessing.textContent = '辨識中…';
-    } else if (_talkState === 'translating') {
-      _talkEl.statusProcessing.textContent = '翻譯中…';
-    }
-
-    // 麥克風鈕
-    var zhActive = (recording && _talkLang === 'zh');
-    var jaActive = (recording && _talkLang === 'ja');
-
-    _talkEl.micZh.disabled = processing || (recording && _talkLang === 'ja');
-    _talkEl.micJa.disabled = processing || (recording && _talkLang === 'zh');
-
-    // 錄音中：顯示「■ 停止」；idle/processing：顯示 🎤
-    if (zhActive) {
+    // 麥克風鈕文案 + active class
+    if (recording && _talkLang === 'zh') {
       _talkEl.micZh.textContent = '■ 停止';
       _talkEl.micZh.classList.add('talk-mic-active');
     } else {
-      _talkEl.micZh.textContent = '🎤 中文（我說）';
+      _talkEl.micZh.textContent = '🎤 點我說中文';
       _talkEl.micZh.classList.remove('talk-mic-active');
     }
-    if (jaActive) {
-      _talkEl.micJa.textContent = '■ 停止';
+    if (recording && _talkLang === 'ja') {
+      _talkEl.micJa.textContent = '■ ストップ';
       _talkEl.micJa.classList.add('talk-mic-active');
     } else {
-      _talkEl.micJa.textContent = '🎤 日文（對方說）';
+      _talkEl.micJa.textContent = '🎤 タップして話す';
       _talkEl.micJa.classList.remove('talk-mic-active');
     }
 
-    // 錄音不可用：兩鈕 disabled（永久）
-    if (App.recorder && !App.recorder.isAvailable) {
-      _talkEl.micZh.disabled = true;
-      _talkEl.micJa.disabled = true;
+    // 狀態列文案（兩側分語言）
+    if (unavailable) {
+      _talkEl.zhStatus.textContent = TALK_ERROR_MSG.NOT_SUPPORTED;
+      _talkEl.jaStatus.textContent = 'マイクを押して話してください';
+      return;
+    }
+
+    if (idle) {
+      _talkEl.zhStatus.textContent = '按下麥克風開始說話';
+      _talkEl.jaStatus.textContent = 'マイクを押して話してください';
+    } else if (_talkLang === 'zh') {
+      // zh 說話中：zh 側顯示進行狀態，ja 側維持 idle
+      if (recording) {
+        _talkEl.zhStatus.textContent = '🔴 錄音中…說完再按一次';
+      } else if (_talkState === 'recognizing') {
+        _talkEl.zhStatus.textContent = '辨識中…';
+      } else {
+        _talkEl.zhStatus.textContent = '翻譯中…';
+      }
+      _talkEl.jaStatus.textContent = 'マイクを押して話してください';
+    } else if (_talkLang === 'ja') {
+      // ja 說話中：ja 側顯示進行狀態，zh 側維持 idle
+      if (recording) {
+        _talkEl.jaStatus.textContent = '🔴 録音中…もう一度押すと停止';
+      } else if (_talkState === 'recognizing') {
+        _talkEl.jaStatus.textContent = '認識中…';
+      } else {
+        _talkEl.jaStatus.textContent = '翻訳中…';
+      }
+      _talkEl.zhStatus.textContent = '按下麥克風開始說話';
     }
   }
 
-  // ── 顯示對話狀態文案 ──────────────────────────────────────────────────────
-  function _showTalkStatus(msg) {
+  // ── 分側狀態文案寫入 ───────────────────────────────────────────────────────
+  function _setSideStatus(side, msg) {
     if (!_talkDOMBuilt) return;
-    _talkEl.statusIdle.style.display       = 'none';
-    _talkEl.statusRecording.style.display  = 'none';
-    _talkEl.statusProcessing.style.display = '';
-    _talkEl.statusProcessing.textContent   = msg;
+    if (side === 'ja') {
+      _talkEl.jaStatus.textContent = msg;
+    } else {
+      _talkEl.zhStatus.textContent = msg;
+    }
   }
 
-  // ── 追加氣泡 ──────────────────────────────────────────────────────────────
-  function _appendBubble(dir, origText, transText) {
-    // 記憶體上限 50，超過丟最舊（陣列 + DOM 同步裁剪）
-    _bubbles.push({ dir: dir, orig: origText, trans: transText });
-    if (_bubbles.length > MAX_BUBBLES) {
-      _bubbles.shift();
-      if (_talkEl.history && _talkEl.history.firstChild) {
-        _talkEl.history.removeChild(_talkEl.history.firstChild);
+  // ── 說話側辨識原文寫入 ────────────────────────────────────────────────────
+  function _setSideOrig(side, text) {
+    if (!_talkDOMBuilt) return;
+    if (side === 'ja') {
+      _talkEl.jaOrig.textContent = text;
+    } else {
+      _talkEl.zhOrig.textContent = text;
+    }
+  }
+
+  // ── 聽話側譯文寫入（覆蓋式，scrollTop 歸 0）──────────────────────────────
+  function _setSideResult(listenerLang, result, origZh) {
+    if (listenerLang === 'ja') {
+      _side.ja.result = result;
+      if (origZh !== undefined) _side.ja.origZh = origZh;
+      if (_talkDOMBuilt) {
+        _talkEl.jaResult.textContent  = result;
+        _talkEl.jaResult.scrollTop    = 0;
+        _talkEl.jaSpeakBtn.disabled   = !result;
+        _talkEl.jaBigtextBtn.disabled = !result;
+      }
+    } else {
+      _side.zh.result = result;
+      if (_talkDOMBuilt) {
+        _talkEl.zhResult.textContent  = result;
+        _talkEl.zhResult.scrollTop    = 0;
+        _talkEl.zhSpeakBtn.disabled   = !result;
+        _talkEl.zhBigtextBtn.disabled = !result;
       }
     }
-
-    if (!_talkDOMBuilt) return;
-
-    var bubble = document.createElement('div');
-    bubble.className = 'talk-bubble ' + (dir === 'zh2ja' ? 'talk-zh2ja' : 'talk-ja2zh');
-
-    var origEl = document.createElement('div');
-    origEl.className   = 'talk-bubble-orig';
-    origEl.textContent = origText;
-
-    var transEl = document.createElement('div');
-    transEl.className   = 'talk-bubble-trans';
-    transEl.textContent = transText;
-
-    // 氣泡動作鈕
-    var actions = document.createElement('div');
-    actions.className = 'talk-bubble-actions';
-
-    var speakBtn = document.createElement('button');
-    speakBtn.type = 'button';
-    speakBtn.className   = 'talk-bubble-speak';
-    speakBtn.textContent = '🔊 重播';
-
-    var bigtextBtn = document.createElement('button');
-    bigtextBtn.type = 'button';
-    bigtextBtn.className   = 'talk-bubble-bigtext';
-    bigtextBtn.textContent = '⤢ 大字';
-
-    // 氣泡動作鈕僅 idle 時作用（spec §7）
-    speakBtn.addEventListener('click', function () {
-      if (_talkState !== 'idle') return;
-      if (dir === 'zh2ja') {
-        App.speak(transText, 'ja-JP');
-      } else {
-        App.speak(transText, 'zh-TW');
-      }
-    });
-
-    bigtextBtn.addEventListener('click', function () {
-      if (_talkState !== 'idle') return;
-      if (dir === 'zh2ja') {
-        // 中→日氣泡：ja = 日文譯文，zh = 中文原文
-        App.showBigText({ ja: transText, zh: origText });
-      } else {
-        // 日→中氣泡：主文字槽放中文（歷史命名 ja，Task12.api.md §契約擴充）
-        App.showBigText({ ja: transText, lang: 'zh-TW' });
-      }
-    });
-
-    actions.appendChild(speakBtn);
-    actions.appendChild(bigtextBtn);
-
-    bubble.appendChild(origEl);
-    bubble.appendChild(transEl);
-    bubble.appendChild(actions);
-
-    _talkEl.history.appendChild(bubble);
-
-    // G9：append 後捲到最底
-    _talkEl.history.scrollTop = _talkEl.history.scrollHeight;
   }
 
-  // ── 處理錄音結果：STT → 翻譯 → 氣泡 → TTS ─────────────────────────────
+  // ── 處理錄音結果：STT → 翻譯 → 顯示槽 → TTS ─────────────────────────────
   function _processTalk(lang, base64) {
-    var sttLang    = STT_LANG[lang];  // cmn-Hant-TW or ja-JP
-    var transFrom  = (lang === 'zh') ? 'zh-TW' : 'ja';
-    var transTo    = (lang === 'zh') ? 'ja'    : 'zh-TW';
-    var dir        = (lang === 'zh') ? 'zh2ja' : 'ja2zh';
+    var sttLang   = STT_LANG[lang];  // cmn-Hant-TW or ja-JP
+    var transFrom = (lang === 'zh') ? 'zh-TW' : 'ja';
+    var transTo   = (lang === 'zh') ? 'ja'    : 'zh-TW';
 
     _talkState = 'recognizing';
     _updateTalkUI();
 
     App.api.speechToText(base64, sttLang)
       .then(function (transcript) {
-        // 空結果（沒聽清楚）
+        // 空結果（沒聽清楚）→ 說話側狀態列，槽不動
         if (!transcript || !transcript.trim()) {
-          _showTalkStatus('沒有聽清楚，請再說一次');
           _talkState = 'idle';
           _updateTalkUI();
+          _setSideStatus(lang, lang === 'zh'
+            ? '沒有聽清楚，請再說一次'
+            : '聞き取れませんでした。もう一度お願いします');
           return;
         }
 
@@ -533,6 +513,9 @@
                    ? transcript.slice(0, MAX_CHARS)
                    : transcript;
 
+        // 說話側原文（STT 成功當下，進 translating 前）
+        _setSideOrig(lang, (lang === 'zh' ? '辨識：' : '認識：') + text);
+
         _talkState = 'translating';
         _updateTalkUI();
 
@@ -540,7 +523,10 @@
           .then(function (result) {
             _talkState = 'idle';
             _updateTalkUI();
-            _appendBubble(dir, text, result);
+
+            // 顯示寫入（守門外，無條件執行；in-flight 結果照寫，不播）
+            var listenerLang = (lang === 'zh') ? 'ja' : 'zh';
+            _setSideResult(listenerLang, result, lang === 'zh' ? text : undefined);
 
             // G4：自動播條件 = translate 為當前分頁 && 模式仍為 'talk'（Task13：兩方向共用）
             var section = document.getElementById('tab-translate');
@@ -554,7 +540,7 @@
             _updateTalkUI();
             var code = (err && err.code) ? err.code : 'HTTP_OTHER';
             // 辨識到的原文保留顯示（spec §8）
-            _showTalkStatus((TALK_ERROR_MSG[code] || TALK_ERROR_MSG.HTTP_OTHER)
+            _setSideStatus('zh', (TALK_ERROR_MSG[code] || TALK_ERROR_MSG.HTTP_OTHER)
                             + '\n（辨識到：' + text + '）');
           });
       })
@@ -562,7 +548,7 @@
         _talkState = 'idle';
         _updateTalkUI();
         var code = (err && err.code) ? err.code : 'HTTP_OTHER';
-        _showTalkStatus(TALK_ERROR_MSG[code] || TALK_ERROR_MSG.HTTP_OTHER);
+        _setSideStatus('zh', TALK_ERROR_MSG[code] || TALK_ERROR_MSG.HTTP_OTHER);
       });
   }
 
@@ -585,7 +571,7 @@
           _talkLang  = null;
           _updateTalkUI();
           var code = (err && err.code) ? err.code : 'OTHER';
-          _showTalkStatus(TALK_ERROR_MSG[code] || TALK_ERROR_MSG.OTHER);
+          _setSideStatus('zh', TALK_ERROR_MSG[code] || TALK_ERROR_MSG.OTHER);
         });
       return;
     }
@@ -619,7 +605,7 @@
               _talkLang  = null;
               _updateTalkUI();
               var code = (err && err.code) ? err.code : 'OTHER';
-              _showTalkStatus(TALK_ERROR_MSG[code] || TALK_ERROR_MSG.OTHER);
+              _setSideStatus('zh', TALK_ERROR_MSG[code] || TALK_ERROR_MSG.OTHER);
             });
         }, 60000);
       })
@@ -628,84 +614,166 @@
         _talkLang  = null;
         _updateTalkUI();
         var code = (err && err.code) ? err.code : 'OTHER';
-        _showTalkStatus(TALK_ERROR_MSG[code] || TALK_ERROR_MSG.OTHER);
+        _setSideStatus('zh', TALK_ERROR_MSG[code] || TALK_ERROR_MSG.OTHER);
       });
   }
 
-  // ── 對話模式 DOM 建構（首次進入對話模式時建，冪等）─────────────────────
+  // ── 對話模式 DOM 建構（面對面版面，首次進入時建，冪等）──────────────────
   function _buildTalkDOM(talkContainer) {
     if (_talkDOMBuilt) return;
     _talkDOMBuilt = true;
 
-    // 語言列（flex-shrink:0）
-    var langBar = document.createElement('div');
-    langBar.className   = 'talk-lang-bar';
-    langBar.textContent = '🇹🇼 中文  ⇄  🇯🇵 日文';
+    // ── 上半（日方）— 整個容器 CSS rotate(180deg) ─────────────────────────
+    var jaSide = document.createElement('div');
+    jaSide.className = 'talk-side talk-side-ja';
 
-    // 氣泡歷史（flex:1 捲動區）
-    var history = document.createElement('div');
-    history.className = 'talk-history';
-    _talkEl.history = history;
+    var jaLang = document.createElement('div');
+    jaLang.className = 'talk-side-lang';
+    jaLang.textContent = '日本語';
 
-    // 狀態區（flex-shrink:0）
-    var statusArea = document.createElement('div');
-    statusArea.className = 'talk-status';
+    var jaOrig = document.createElement('div');
+    jaOrig.className = 'talk-side-orig';
+    _talkEl.jaOrig = jaOrig;
 
-    var statusIdle = document.createElement('div');
-    statusIdle.className   = 'talk-status-idle';
-    statusIdle.textContent = '🎤 按下方按鈕開始說話';
+    var jaResult = document.createElement('div');
+    jaResult.className = 'talk-side-result';
+    _talkEl.jaResult = jaResult;
 
-    var statusRecording = document.createElement('div');
-    statusRecording.className   = 'talk-status-recording';
-    statusRecording.textContent = '🔴 錄音中…說完再按一次停止';
-    statusRecording.style.display = 'none';
+    var jaStatus = document.createElement('div');
+    jaStatus.className = 'talk-side-status';
+    jaStatus.textContent = 'マイクを押して話してください';
+    _talkEl.jaStatus = jaStatus;
 
-    var statusProcessing = document.createElement('div');
-    statusProcessing.className = 'talk-status-processing';
-    statusProcessing.style.display = 'none';
+    var jaActions = document.createElement('div');
+    jaActions.className = 'talk-side-actions';
 
-    statusArea.appendChild(statusIdle);
-    statusArea.appendChild(statusRecording);
-    statusArea.appendChild(statusProcessing);
+    var jaSpeakBtn = document.createElement('button');
+    jaSpeakBtn.type = 'button';
+    jaSpeakBtn.className = 'talk-side-speak';
+    jaSpeakBtn.textContent = '🔊 再生';
+    jaSpeakBtn.disabled = true;
+    _talkEl.jaSpeakBtn = jaSpeakBtn;
 
-    _talkEl.statusIdle       = statusIdle;
-    _talkEl.statusRecording  = statusRecording;
-    _talkEl.statusProcessing = statusProcessing;
+    var jaBigtextBtn = document.createElement('button');
+    jaBigtextBtn.type = 'button';
+    jaBigtextBtn.className = 'talk-side-bigtext';
+    jaBigtextBtn.textContent = '⤢ 大きく';
+    jaBigtextBtn.disabled = true;
+    _talkEl.jaBigtextBtn = jaBigtextBtn;
 
-    // 底部麥克風鈕列（flex-shrink:0）
-    var micRow = document.createElement('div');
-    micRow.className = 'talk-mic-row';
+    jaActions.appendChild(jaSpeakBtn);
+    jaActions.appendChild(jaBigtextBtn);
 
-    var micZh = document.createElement('button');
-    micZh.type      = 'button';
-    micZh.className = 'talk-mic-zh';
-    micZh.textContent = '🎤 中文（我說）';
+    var jaMic = document.createElement('button');
+    jaMic.type = 'button';
+    jaMic.className = 'talk-side-mic';
+    jaMic.textContent = '🎤 タップして話す';
+    _talkEl.micJa = jaMic;  // key 沿用 micJa（G2 相容）
 
-    var micJa = document.createElement('button');
-    micJa.type      = 'button';
-    micJa.className = 'talk-mic-ja';
-    micJa.textContent = '🎤 日文（對方說）';
+    jaSide.appendChild(jaLang);
+    jaSide.appendChild(jaOrig);
+    jaSide.appendChild(jaResult);
+    jaSide.appendChild(jaStatus);
+    jaSide.appendChild(jaActions);
+    jaSide.appendChild(jaMic);
 
-    micRow.appendChild(micZh);
-    micRow.appendChild(micJa);
+    // ── 中央分隔帶 ──────────────────────────────────────────────────────────
+    var divider = document.createElement('div');
+    divider.className = 'talk-divider';
+    divider.textContent = '⇄';
 
-    _talkEl.micZh = micZh;
-    _talkEl.micJa = micJa;
+    // ── 下半（中文 / Olina）— 正向 ─────────────────────────────────────────
+    var zhSide = document.createElement('div');
+    zhSide.className = 'talk-side talk-side-zh';
 
-    talkContainer.appendChild(langBar);
-    talkContainer.appendChild(history);
-    talkContainer.appendChild(statusArea);
-    talkContainer.appendChild(micRow);
+    var zhLang = document.createElement('div');
+    zhLang.className = 'talk-side-lang';
+    zhLang.textContent = '中文';
 
-    // 不支援錄音時兩鈕 disabled + 狀態提示
+    var zhOrig = document.createElement('div');
+    zhOrig.className = 'talk-side-orig';
+    _talkEl.zhOrig = zhOrig;
+
+    var zhResult = document.createElement('div');
+    zhResult.className = 'talk-side-result';
+    _talkEl.zhResult = zhResult;
+
+    var zhStatus = document.createElement('div');
+    zhStatus.className = 'talk-side-status';
+    zhStatus.textContent = '按下麥克風開始說話';
+    _talkEl.zhStatus = zhStatus;
+
+    var zhActions = document.createElement('div');
+    zhActions.className = 'talk-side-actions';
+
+    var zhSpeakBtn = document.createElement('button');
+    zhSpeakBtn.type = 'button';
+    zhSpeakBtn.className = 'talk-side-speak';
+    zhSpeakBtn.textContent = '🔊 重播';
+    zhSpeakBtn.disabled = true;
+    _talkEl.zhSpeakBtn = zhSpeakBtn;
+
+    var zhBigtextBtn = document.createElement('button');
+    zhBigtextBtn.type = 'button';
+    zhBigtextBtn.className = 'talk-side-bigtext';
+    zhBigtextBtn.textContent = '⤢ 大字';
+    zhBigtextBtn.disabled = true;
+    _talkEl.zhBigtextBtn = zhBigtextBtn;
+
+    zhActions.appendChild(zhSpeakBtn);
+    zhActions.appendChild(zhBigtextBtn);
+
+    var zhMic = document.createElement('button');
+    zhMic.type = 'button';
+    zhMic.className = 'talk-side-mic';
+    zhMic.textContent = '🎤 點我說中文';
+    _talkEl.micZh = zhMic;  // key 沿用 micZh（G2 相容）
+
+    zhSide.appendChild(zhLang);
+    zhSide.appendChild(zhOrig);
+    zhSide.appendChild(zhResult);
+    zhSide.appendChild(zhStatus);
+    zhSide.appendChild(zhActions);
+    zhSide.appendChild(zhMic);
+
+    talkContainer.appendChild(jaSide);
+    talkContainer.appendChild(divider);
+    talkContainer.appendChild(zhSide);
+
+    // ── 動作鈕事件（Task12 §7：僅 idle 時作用）──────────────────────────────
+    jaSpeakBtn.addEventListener('click', function () {
+      if (_talkState !== 'idle' || !_side.ja.result) return;
+      App.speak(_side.ja.result, 'ja-JP');
+    });
+
+    jaBigtextBtn.addEventListener('click', function () {
+      if (_talkState !== 'idle' || !_side.ja.result) return;
+      // ja 側大字：ja = 日文譯文，zh = 中文原文（Task12.api.md 契約）
+      App.showBigText({ ja: _side.ja.result, zh: _side.ja.origZh });
+    });
+
+    zhSpeakBtn.addEventListener('click', function () {
+      if (_talkState !== 'idle' || !_side.zh.result) return;
+      App.speak(_side.zh.result, 'zh-TW');
+    });
+
+    zhBigtextBtn.addEventListener('click', function () {
+      if (_talkState !== 'idle' || !_side.zh.result) return;
+      // zh 側大字：ja 槽放中文（歷史命名），lang = zh-TW（Task12.api.md 契約）
+      App.showBigText({ ja: _side.zh.result, lang: 'zh-TW' });
+    });
+
+    // ── 麥克風鈕事件 ─────────────────────────────────────────────────────────
+    jaMic.addEventListener('click', function () { _onMicClick('ja'); });
+    zhMic.addEventListener('click', function () { _onMicClick('zh'); });
+
+    // ── NOT_SUPPORTED 初始狀態 ──────────────────────────────────────────────
     if (!App.recorder || !App.recorder.isAvailable) {
-      micZh.disabled = true;
-      micJa.disabled = true;
-      statusIdle.textContent = '此瀏覽器不支援錄音，請改用文字模式';
+      jaMic.disabled = true;
+      zhMic.disabled = true;
+      zhStatus.textContent = TALK_ERROR_MSG.NOT_SUPPORTED;
+      // jaStatus 維持 idle 日文文案（錯誤決策歸機主，spec §6.2）
     }
-
-    micZh.addEventListener('click', function () { _onMicClick('zh'); });
-    micJa.addEventListener('click', function () { _onMicClick('ja'); });
   }
 
   // ════════════════════════════════════════════════════════════════════════════
