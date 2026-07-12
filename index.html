@@ -27,48 +27,27 @@
   <!-- ──────────────────────────────────────────────────────────
     分頁容器（A1 DOM 約定）
       id="tab-{id}"  ← app.js showTab() 依此 id 控制 hidden
-      每個 section 直接作為 Task2–6 的掛載容器
-      Task2–6 整塊替換 .placeholder-card，不改 section 本體
+      每個 section 直接作為各功能模組的掛載容器
+      各分頁 DOM 均由對應 JS 動態建構，section 本體留空
   ─────────────────────────────────────────────────────────── -->
 
   <!-- 常用句（Task2 實作）-->
-  <section id="tab-phrases" class="tab-section">
-    <div class="placeholder-card">
-      <span class="placeholder-icon" aria-hidden="true">💬</span>
-      <h1 class="placeholder-title">常用句</h1>
-      <p class="placeholder-desc">Task2 會實作</p>
-    </div>
-  </section>
+  <section id="tab-phrases" class="tab-section"></section>
 
   <!-- 翻譯（Task5 實作）-->
-  <section id="tab-translate" class="tab-section" hidden>
-    <div class="placeholder-card">
-      <span class="placeholder-icon" aria-hidden="true">🌐</span>
-      <h1 class="placeholder-title">翻譯</h1>
-      <p class="placeholder-desc">Task5 會實作</p>
-    </div>
-  </section>
+  <section id="tab-translate" class="tab-section" hidden></section>
 
   <!-- 拍照（Task6 實作）— DOM 由 camera-tab.js 動態建構 -->
   <section id="tab-camera" class="tab-section" hidden></section>
 
   <!-- 行程（Task3 實作）-->
-  <section id="tab-trip" class="tab-section" hidden>
-    <div class="placeholder-card">
-      <span class="placeholder-icon" aria-hidden="true">🗺️</span>
-      <h1 class="placeholder-title">行程</h1>
-      <p class="placeholder-desc">Task3 會實作</p>
-    </div>
-  </section>
+  <section id="tab-trip" class="tab-section" hidden></section>
+
+  <!-- 地圖（Task17 實作）— DOM 由 map-tab.js 動態建構 -->
+  <section id="tab-map" class="tab-section" hidden></section>
 
   <!-- 折價券（Task4 實作）-->
-  <section id="tab-coupons" class="tab-section" hidden>
-    <div class="placeholder-card">
-      <span class="placeholder-icon" aria-hidden="true">🎫</span>
-      <h1 class="placeholder-title">折價券</h1>
-      <p class="placeholder-desc">Task4 會實作</p>
-    </div>
-  </section>
+  <section id="tab-coupons" class="tab-section" hidden></section>
 
   <!-- ──────────────────────────────────────────────────────────
     底部分頁導覽列
@@ -102,6 +81,12 @@
       <span class="nav-label">行程</span>
     </button>
 
+    <button class="nav-btn" data-tab="map"
+            role="tab" aria-selected="false" aria-controls="tab-map">
+      <span class="nav-icon" aria-hidden="true">🗺</span>
+      <span class="nav-label">地圖</span>
+    </button>
+
     <button class="nav-btn" data-tab="coupons"
             role="tab" aria-selected="false" aria-controls="tab-coupons">
       <span class="nav-icon" aria-hidden="true">🎫</span>
@@ -117,17 +102,20 @@
   <button id="update-toast" hidden>有新版本，點一下更新</button>
 
   <!-- ──────────────────────────────────────────────────────────
-    腳本載入順序（A6 — Task14 修訂定死，Task2-6 不得更動）
+    腳本載入順序（A6 — Task14 修訂定死）
       version.js：版本常數（Task14 起，最前無依賴，APP_VERSION/APP_VERSION_DATE）
       config.js：onerror 容錯（A4）— window.APP_CONFIG 可能未定義
-      phrases.js / tripdata.js：資料層，必須在 app.js 之前
+      phrases.js / tripdata.js / mapdata.js：資料層，必須在 app.js 之前
       app.js：分頁框架 + App API + SW 註冊
-      Task2-6 功能模組：app.js 之後插入，可直接同步呼叫 App.registerTab()
+      功能模組：app.js 之後插入，可直接同步呼叫 App.registerTab()
+        wrap 鏈外→內：coupon-viewer → camera-tab → translate-tab → bigtext → app.js
+        map-tab.js 不 wrap（無錄音/TTS/overlay），插 trip-tab.js 之後
   ─────────────────────────────────────────────────────────── -->
   <script src="./js/version.js"></script>
   <script src="./js/config.js" onerror="window._configLoadError=true"></script>
   <script src="./js/phrases.js"></script>
   <script src="./js/tripdata.js"></script>
+  <script src="./js/mapdata.js"></script>
   <script src="./js/app.js"></script>
   <!-- Task2 功能模組（順序定死：tts 在最前，phrases-tab 在最後，皆在 app.js 之後）-->
   <script src="./js/tts.js"></script>
@@ -136,7 +124,8 @@
   <!-- Task3 功能模組（順序定死：import-data 必須在 trip-tab 之前）-->
   <script src="./js/import-data.js"></script>
   <script src="./js/trip-tab.js"></script>
-  <!-- Task5-6 功能模組插這裡，在 trip-tab.js 之後、</body> 之前 -->
+  <!-- Task17 地圖分頁（mapdata.js 在資料層已載；不 wrap showTab）-->
+  <script src="./js/map-tab.js"></script>
   <!-- Task5 功能模組（api 在 translate-tab 之前；皆在 tts/bigtext 之後）-->
   <script src="./js/api.js"></script>
   <!-- Task12 錄音封裝（api.js 之後、translate-tab.js 之前）-->

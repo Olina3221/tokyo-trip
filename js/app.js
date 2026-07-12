@@ -15,8 +15,8 @@
   'use strict';
 
   // ─── 常數 ───────────────────────────────────────────────────
-  // A1：五個分頁 id 定案，Task2-6 直接引用，改名 = 全鏈返工
-  var TAB_IDS = ['phrases', 'translate', 'camera', 'trip', 'coupons'];
+  // A1：五個分頁 id 定案（Task2-6）+ Task17 additive 加 'map'（順序與導覽 DOM 一致）
+  var TAB_IDS = ['phrases', 'translate', 'camera', 'trip', 'map', 'coupons'];
 
   // A8：localStorage key 命名空間
   var STORAGE_KEY = 'tokyotrip.lastTab';

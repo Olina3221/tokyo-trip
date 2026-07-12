@@ -77,7 +77,7 @@ body {
 /* ── 分頁容器（A1 DOM 約定）──────────────────────────────────
    id="tab-{id}"：app.js showTab() 依此 id 切換 hidden 屬性
    fixed 定位讓各分頁獨立佔滿內容區，互不影響
-   Task2–6 整塊替換 .placeholder-card，section 本體不需異動
+   各分頁 DOM 均由對應 JS 動態建構，section 本體留空
    ─────────────────────────────────────────────────────────── */
 .tab-section {
   position: fixed;
@@ -97,38 +97,6 @@ body {
   display: none;
 }
 
-
-/* ── 佔位卡 ──────────────────────────────────────────────────
-   Task2–6：整塊替換此 div 即可，section 結構不變
-   ─────────────────────────────────────────────────────────── */
-.placeholder-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 40px 24px;
-  text-align: center;
-}
-
-.placeholder-icon {
-  font-size: 72px;
-  line-height: 1;
-  user-select: none;
-}
-
-.placeholder-title {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--c-text);
-}
-
-.placeholder-desc {
-  font-size: 16px;
-  color: var(--c-text-muted);
-}
 
 
 /* ── 底部導覽列（A7：z-index:10）────────────────────────────
@@ -2582,4 +2550,420 @@ body {
   background-color: rgba(77, 124, 244, 0.32);
   cursor: default;
   box-shadow: none;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Task17 — 地圖分頁（map tab）
+   DOM 由 js/map-tab.js 動態渲染；class 名由 Task17.api.md 定案
+   注意：本節禁止引用 --fs-*（字級全硬編碼）；淺色主題；無 z-index≥100
+   Task11 U2 永續紀律：.map-chips-bar/.map-ab-row/.map-lang-hint 皆 flex-shrink:0
+   ════════════════════════════════════════════════════════════ */
+
+/* #tab-map 覆蓋 .tab-section overflow-y:auto，讓 .map-places-list 成為唯一捲動區 */
+#tab-map {
+  overflow: hidden;
+}
+
+/* ── 日期 chips 列（flex-shrink:0）──────────────────────────── */
+.map-chips-bar {
+  flex-shrink: 0;
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 8px 12px;
+  gap: 8px;
+  background-color: var(--c-bg);
+  border-bottom: 1px solid var(--c-divider);
+}
+
+.map-chips-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 每顆日期 chip：觸控目標 ≥44px */
+.map-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  border-radius: 22px;
+  color: var(--c-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.map-chip:active {
+  opacity: 0.7;
+}
+
+/* 選中 chip：accent 底白字 */
+.map-chip-active {
+  background: var(--c-accent);
+  color: #ffffff;
+}
+
+/* 「今」badge（chip 內 span，選中時白底藍字，未選中時 accent 底白字）*/
+.map-chip-today {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.map-chip-active .map-chip-today {
+  background-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+/* ── A/B 選擇區（flex-shrink:0）──────────────────────────────── */
+.map-ab-row {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--c-bg);
+  border-bottom: 1px solid var(--c-divider);
+  padding: 6px 14px;
+}
+
+/* A 起點列 / B 終點列 */
+.map-ab-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 3px 0;
+}
+
+/* 「A 起點」「B 終點」標籤 */
+.map-ab-label {
+  flex-shrink: 0;
+  width: 46px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+}
+
+/* 目前選中值 */
+.map-ab-val {
+  flex: 1;
+  font-size: 14px;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* A=目前位置 狀態 */
+.map-ab-val.map-ab-current {
+  color: var(--c-accent-text);
+  font-weight: 600;
+}
+
+/* 未選狀態 */
+.map-ab-val.map-ab-empty {
+  color: var(--c-text-muted);
+  font-style: italic;
+}
+
+/* 自訂文字 B 狀態 */
+.map-ab-val.map-ab-custom {
+  color: var(--c-text-muted);
+}
+
+/* 「還原位置」button（min-height:44px 觸控目標）*/
+.map-ab-reset-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--c-accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.map-ab-reset-btn:active {
+  opacity: 0.6;
+}
+
+/* B 自訂輸入列 */
+.map-ab-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+/* 自訂終點輸入框（iOS 縮放紅線：font-size ≥16px；JS 已設，CSS 同步保底）*/
+.map-custom-input {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--c-divider);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--c-text);
+  font-size: 16px;   /* ≥16px iOS 聚焦縮放紅線 */
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.map-custom-input::placeholder {
+  color: var(--c-text-muted);
+  opacity: 0.55;
+}
+
+.map-custom-input:focus {
+  outline: none;
+  border-color: var(--c-accent-text);
+  background: rgba(77, 124, 244, 0.06);
+}
+
+/* 「使用」button（min-height:44px 觸控目標）*/
+.map-custom-use-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--c-accent);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.map-custom-use-btn:active {
+  opacity: 0.7;
+}
+
+/* 操作列：A⇄B 互換鈕 + 路線鈕 */
+.map-ab-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+/* A⇄B 互換鈕 */
+.map-swap-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--c-divider);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--c-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.map-swap-btn:active:not(:disabled) {
+  opacity: 0.6;
+}
+
+.map-swap-btn:disabled {
+  opacity: 0.30;
+  cursor: default;
+}
+
+/* 「查大眾運輸路線」主鈕（≥44px，accent 填充，全寬）*/
+.map-route-btn {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--c-accent);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.12s ease;
+}
+
+.map-route-btn:active:not(:disabled) {
+  opacity: 0.7;
+}
+
+.map-route-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 「會離開 APP 開啟 Google 地圖」小字 */
+.map-leave-note {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  padding: 4px 0 2px;
+  text-align: center;
+}
+
+/* ── 語言提示（flex-shrink:0，B3-1）──────────────────────────── */
+.map-lang-hint {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--c-text-muted);
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid var(--c-divider);
+  padding: 7px 14px;
+  line-height: 1.55;
+}
+
+/* ── 地點清單（flex:1，唯一捲動區）──────────────────────────── */
+.map-places-list {
+  flex: 1;
+  min-height: 0;               /* flex 子元素縮到捲動窗所需 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 16px;
+}
+
+/* 日期頭 */
+.map-day-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--c-divider);
+}
+
+.map-day-header-main {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.map-day-theme {
+  font-size: 13px;
+  color: var(--c-text-muted);
+  flex-shrink: 0;
+}
+
+/* 「今天」badge（日期頭內）*/
+.map-today-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--c-accent);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* 本日無地點 */
+.map-empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--c-text-muted);
+}
+
+/* 地點列（地點名 + 設起點/設終點）*/
+.map-place-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  min-height: 52px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.map-place-row:last-child {
+  border-bottom: none;
+}
+
+/* 地點名（點→單點開地圖）— min-height 由 .map-place-row 保證 ≥44px */
+.map-place-name {
+  flex: 1;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--c-text);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  padding: 0;
+  line-height: 1.4;
+  overflow: hidden;
+  word-break: break-all;
+}
+
+.map-place-name:active {
+  opacity: 0.6;
+}
+
+/* 地點操作按鈕區 */
+.map-place-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+/* 「設起點」「設終點」按鈕（min-height:44px 觸控目標）*/
+.map-place-btn {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--c-divider);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--c-accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.map-place-btn:active {
+  background: rgba(77, 124, 244, 0.14);
+}
+
+/* 錯誤文案（MAPDATA 缺載）*/
+.map-error {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: 15px;
+  line-height: 1.5;
 }
