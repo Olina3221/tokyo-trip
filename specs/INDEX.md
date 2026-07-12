@@ -27,6 +27,7 @@
 | — | Task10 | 行程頁字級統一（五階 type scale）＋單日細節下鑽（總覽⇄單日視圖切換）（Olina 實機回饋）。字級以 Task8 淺色主題為基礎 | 否 | ✅ 已完成（2026-07-12 QA PASS，impact §6 機械判準 1–12 全過＋Playwright 瀏覽器實測；R1 零硬編碼、F1 三處維持 xl=22、R2 狀態機全驗、sw.js v9；spec: `Task10.spec.md`；真機手感由 Olina 部署後流程外確認） |
 | — | Task5 | 中 ⇄ 日即時翻譯（Cloud Translation）＋金鑰納入版控（config.js 進 repo）＋翻譯結果接大字展示與語音 | 是 | ✅ 已完成（2026-07-12 QA PASS，金鑰版控化不變式 8 項機械全過＋隱私三段式（翻轉後判準）＋翻譯邏輯靜態驗證全過、sw.js v10；spec: `Task5.spec.md`；真翻譯 E2E 因 referer 鎖 github.io 移交 Olina 部署後 iPhone 流程外驗） |
 | — | Task12 | 翻譯分頁對話語音模式：中⇄日語音對話即時互譯（Google Speech-to-Text 辨識＋翻譯＋雙向 TTS＋氣泡歷史） | 是 | ✅ 已完成（2026-07-12 QA PASS，失敗 1 次修復後通過；recorder.js 新檔＋api.js speechToText＋tts/bigtext lang 擴充＋wrap 三層、sw.js v11、兩探針頁已清；spec: `Task12.spec.md`；真對話 E2E 與實機音色由 Olina 部署後流程外驗收） |
+| — | Task13 | 對話模式雙向自動播音：日→中辨識翻譯後自動用中文語音（zh-TW）唸出（Olina 實機回饋；翻轉 Task12 spec §3「日→中不自動播」決定） | 是 | ✅ 已完成（2026-07-12 QA PASS，impact §8 機械判準全過；G4 守門共用、中→日零變更、sw.js v12；spec: `Task13.spec.md`；真機 zh-TW 發聲由 Olina 部署後流程外驗收） |
 | **1（下一個）** | **Task6** | **拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯）** | 是 | 排隊（同用 Task5 那把金鑰；重用 Task5 的 api.js 呼叫層——三層設計，OCR 只在端點層追加） |
 | 2 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |
 | 備註 | （未立案） | KML 地圖功能（行程地點地圖化） | — | 待 Olina 定案後由 PM 另立 Task 編號，暫不進佇列 |
@@ -56,6 +57,10 @@
 決策註記（2026-07-12，Task12 引擎翻轉）：**Task12 語音辨識由「瀏覽器內建 webkitSpeechRecognition」改為 Google Cloud Speech-to-Text API**——Olina 為可靠度拍板（「到國外什麼都不方便、穩一點」）。已 de-risk：探針 `speech-test.html`（錄音→LINEAR16@16k→POST speech:recognize）於 Olina iPhone Safari 與主畫面 PWA 皆辨識成功（`cmn-Hant-TW`/`ja-JP`）；金鑰已加 Speech-to-Text API 限制（現為 Translation＋Vision＋Speech 三個）。`Task12.spec.md` 已重寫為 Google Speech 版；**舊版 SA 產物（`Task12.impact.md`、`Task12.sa_done`）作廢刪除**，`Task12.ready` 重建，SA 重做影響分析。原規劃 `js/speech.js` 取消，改為 `js/recorder.js`（錄音/編碼）＋ `api.js` 端點層加 `speechToText`；載入順序 `api.js → recorder.js → translate-tab.js`；CACHE_VERSION 預期 v10→v11 不變；兩個探針（`voice-test.html`、`speech-test.html`）皆列入 Task12 完成時清理。
 
 閉環註記（2026-07-12）：**Task12 已正式閉環**（QA PASS，累計失敗 1 次——Task5 保護區注解 diff，修復後重測全過；sw.js 現為 v11、PRECACHE 37 筆＋recorder.js；翻譯分頁現為「文字/對話」雙模式，對話模式＝錄音 recorder.js → App.api.speechToText（cmn-Hant-TW/ja-JP）→ translate → 雙語 TTS（App.speak 加 lang 參數）＋氣泡歷史（純記憶體上限 50）；showTab wrap 鏈現為三層 coupon-viewer → translate-tab → bigtext；de-risk 探針 voice-test.html/speech-test.html 已刪，見 SYSTEM_MAP）。真對話 E2E（referer 鎖 github.io，localhost 必 403）與 TTS 實機音色由 Olina 部署後 iPhone 流程外驗收。剩餘佇列：**Task6（拍照 OCR）為下一個**（重用 api.js 端點層追加模式，CACHE_VERSION 開工時實際值 +1＝v11→v12），其後 Task7（部署驗收）。**KML 地圖功能**（Olina 提過的行程地點地圖化構想）待她定案後由 PM 另立 Task，已列 roadmap 備註、不佔當前佇列。
+
+排序調整（2026-07-12）：新增 **Task13（對話模式雙向自動播音）並插隊 Task6 之前**——Olina 實機使用對話模式後回饋：日→中要手動按重播「跟文字版沒兩樣、失去意義」，雙向自動唸才是隨行翻譯官。此為讓正在用的對話模式真正可用的關鍵，優先於拍照 OCR。本任務正式翻轉 Task12 spec「對話流程 §3」的「日→中不自動播」定案（該條當時即預留此調整 Task；Task12.spec.md 為閉環存檔不回改，行為新權威 = `Task13.spec.md`）。純 backend 小改（translate-tab.js G4 區塊＋sw.js bump v11→v12），UI 零變更。Task6/7 順延（各 spec「開工時實際值 +1」自動吸收）。
+
+閉環註記（2026-07-12）：**Task13 已正式閉環**（QA PASS，0 FAIL；sw.js 現為 v12；對話模式現為**雙向自動播音**——G4 守門兩方向共用（translate 當前分頁＋模式 talk），zh→ja-JP／ja→zh-TW，中→日路徑與 Task12 基線逐位元等價；Task12.api.md「zh-TW 僅重播鈕」自此為歷史語意，行為新權威 = Task13.spec.md，已於 SYSTEM_MAP 人工補充區註記——存檔不回改）。真機 zh-TW 發聲／音色由 Olina 部署後 iPhone 流程外驗收。剩餘佇列：**Task6（拍照 OCR）為下一個**（CACHE_VERSION 開工時實際值 +1＝v12→v13），其後 Task7（部署驗收）；KML 地圖待 Olina 定案後另立 Task（roadmap 備註）。
 
 決策註記（2026-07-12）：**Task5 開工前置已解除**——Olina 已申請金鑰、填入 `js/config.js` 並設好網站＋API 限制；同時拍板**金鑰納入版控**（翻轉上一條閉環註記內「gitignored、不進 repo」的舊語意，該句保留為歷史）。因 referer 鎖 `olina3221.github.io`，localhost 實呼叫必 403：QA 只驗邏輯/mock，真翻譯 E2E 歸 Olina 部署後 iPhone 流程外驗。`Task5.ready` 已建。
 

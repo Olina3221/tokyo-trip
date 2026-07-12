@@ -542,15 +542,12 @@
             _updateTalkUI();
             _appendBubble(dir, text, result);
 
-            // G4：自動播 ja 條件 = translate 為當前分頁 && 模式仍為 'talk'
-            if (lang === 'zh') {
-              var section = document.getElementById('tab-translate');
-              var curMode = _getMode();
-              if (section && !section.hidden && curMode === 'talk') {
-                App.speak(result, 'ja-JP');
-              }
+            // G4：自動播條件 = translate 為當前分頁 && 模式仍為 'talk'（Task13：兩方向共用）
+            var section = document.getElementById('tab-translate');
+            var curMode = _getMode();
+            if (section && !section.hidden && curMode === 'talk') {
+              App.speak(result, (lang === 'zh') ? 'ja-JP' : 'zh-TW');
             }
-            // 日→中不自動播（spec §3）
           })
           .catch(function (err) {
             _talkState = 'idle';
