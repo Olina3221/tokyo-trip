@@ -3,18 +3,19 @@
  *
  * 必須放 repo 根目錄（SW scope 才能涵蓋整個網站）。
  *
- * ── 加新檔案 SOP（A2）──────────────────────────────────────
- * Task2-6 新增任何 js 或資源：
- *   1. 把路徑加入下面的 PRECACHE_URLS（全檔唯一，只改這裡）
- *   2. 把 CACHE_VERSION 改成新版本字串（如 'v1' → 'v2'）
- *   3. 部署；使用者重新整理兩次後即取得新版
+ * ── bump SOP（自 Task14 起）────────────────────────────────
+ * 改版三行（兩檔三行紀律，QA 機械閘驗）：
+ *   1. js/version.js → APP_VERSION（必須與 CACHE_VERSION 逐字元相等）
+ *   2. js/version.js → APP_VERSION_DATE
+ *   3. 本檔 CACHE_VERSION（全檔唯一，只改這裡）
+ * 新增資源：另加路徑進 PRECACHE_URLS，同時 bump 以上三行
  *
  * ── 禁止項目 ────────────────────────────────────────────────
  * - make_icons.py、specs/ 不得列入快取
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v12';
+var CACHE_VERSION = 'v13';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -60,6 +61,8 @@ var PRECACHE_URLS = [
   './js/translate-tab.js',
   // Task12（A2 SOP）：錄音封裝模組（載入順序 api.js → recorder.js → translate-tab.js）
   './js/recorder.js',
+  // Task14（A2 SOP）：版本常數模組（version.js → config.js → ... → app.js 載入順序）
+  './js/version.js',
 ];
 
 // ─── install：逐檔預快取，單檔失敗不炸整個 install（A4）────

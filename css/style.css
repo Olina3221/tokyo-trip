@@ -2168,3 +2168,76 @@ body {
   border-color: #C63A3A;
   animation: talk-mic-ripple 1.1s ease-in-out infinite;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   Task14 — 版號徽章 #app-version ＋ 更新提示 #update-toast
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 版號徽章（A2 樣式約束）────────────────────────────────────
+   字級硬編碼 11px（禁用 --fs-*，Task10 授權僅 .trip-*）
+   bottom: var(--nav-h)：已含 safe-area-inset-bottom，不必自己再算
+   pointer-events: none：絕不擋任何觸控
+   z-index: 20（> nav 10、< overlay 100）
+   ─────────────────────────────────────────────────────────── */
+#app-version {
+  position: fixed;
+  bottom: var(--nav-h);
+  right: 8px;
+  font-size: 11px;                     /* 硬編碼，禁用 --fs-* */
+  font-weight: 500;
+  color: var(--c-text-muted);
+  background-color: rgba(245, 246, 248, 0.88);
+  border-radius: 5px;
+  padding: 2px 6px;
+  pointer-events: none;                /* 絕不擋觸控 */
+  z-index: 20;                         /* > nav 10、< overlay 100 */
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+
+/* ── 更新提示 Toast（B2 樣式約束）─────────────────────────────
+   min-height: 44px 觸控目標
+   accent 底白字（--c-accent 作底色，#ffffff 字色合法；不用 --c-text 系）
+   z-index: 30（> 徽章 20、< overlay 100）
+   非 overlay 非 modal，不搶焦點不擋其餘操作
+   S6 防呆：display:flex 會蓋掉 UA [hidden]，
+           故必須加 #update-toast[hidden]{display:none}
+   ─────────────────────────────────────────────────────────── */
+#update-toast {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 8px);
+  left: 16px;
+  right: 16px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background-color: var(--c-accent);
+  color: #ffffff;
+  font-size: 15px;                     /* 硬編碼，不用 --fs-* */
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(77, 124, 244, 0.40);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  z-index: 30;
+  letter-spacing: 0.02em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#update-toast:active {
+  opacity: 0.82;
+}
+
+/* S6 防呆：防止 display:flex 蓋掉 UA [hidden] 屬性的隱藏效果 */
+#update-toast[hidden] {
+  display: none;
+}

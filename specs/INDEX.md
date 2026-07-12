@@ -28,8 +28,10 @@
 | — | Task5 | 中 ⇄ 日即時翻譯（Cloud Translation）＋金鑰納入版控（config.js 進 repo）＋翻譯結果接大字展示與語音 | 是 | ✅ 已完成（2026-07-12 QA PASS，金鑰版控化不變式 8 項機械全過＋隱私三段式（翻轉後判準）＋翻譯邏輯靜態驗證全過、sw.js v10；spec: `Task5.spec.md`；真翻譯 E2E 因 referer 鎖 github.io 移交 Olina 部署後 iPhone 流程外驗） |
 | — | Task12 | 翻譯分頁對話語音模式：中⇄日語音對話即時互譯（Google Speech-to-Text 辨識＋翻譯＋雙向 TTS＋氣泡歷史） | 是 | ✅ 已完成（2026-07-12 QA PASS，失敗 1 次修復後通過；recorder.js 新檔＋api.js speechToText＋tts/bigtext lang 擴充＋wrap 三層、sw.js v11、兩探針頁已清；spec: `Task12.spec.md`；真對話 E2E 與實機音色由 Olina 部署後流程外驗收） |
 | — | Task13 | 對話模式雙向自動播音：日→中辨識翻譯後自動用中文語音（zh-TW）唸出（Olina 實機回饋；翻轉 Task12 spec §3「日→中不自動播」決定） | 是 | ✅ 已完成（2026-07-12 QA PASS，impact §8 機械判準全過；G4 守門共用、中→日零變更、sw.js v12；spec: `Task13.spec.md`；真機 zh-TW 發聲由 Olina 部署後流程外驗收） |
-| **1（下一個）** | **Task6** | **拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯）** | 是 | 排隊（同用 Task5 那把金鑰；重用 Task5 的 api.js 呼叫層——三層設計，OCR 只在端點層追加） |
-| 2 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |
+| — | Task14 | 版號可視化＋SW 更新機制可靠化（畫面版號徽章 `vN · MM/DD`＋更新提示一鍵 reload＋reg.update() 檢查時機；Olina 實機回報「刷 10 次拿不到新版、看不出版本」） | 否 | ✅ 已完成（2026-07-12 QA PASS，機械判準 12 項全過 0 FAIL；版號徽章 v13 · 07/12、SW 更新機制（updateViaCache none＋visibilitychange/pageshow 雙觸發＋雙路 toast＋首裝不彈）、location.reload 全 repo 恰一處、sw.js v13＋PRECACHE 38 筆；bump SOP 自此為兩檔三行永續紀律；spec: `Task14.spec.md`；真機更新體感由 Olina 部署後流程外確認） |
+| **1（下一個）** | **Task15** | **對話面對面 UI（翻譯對話模式的面對面使用情境版面；Olina 拍板為下一個）** | 否 | 📝 待 PM 撰 spec（spec 完成並建 `Task15.ready` 後才進 pipeline） |
+| 2 | Task6 | 拍照辨識日文（相機/相簿 → Cloud Vision OCR → 翻譯） | 是 | ⏸ 順延（spec `Task6.spec.md` 有效不動；**`Task6.sa_done` 已由 PM 收回**——Task14 已改其 impact 的機械基線（app.js/sw.js/index.html、PRECACHE 筆數、版本序），**`Task6.ready` 重建改於 Task15 閉環後執行**（一次只跑一個），SA 以既有 `Task6.impact.md` 為基底做增量複核；CACHE_VERSION 開工時實際值 +1 自動吸收（Task14/15 各 bump 一次後起算）、PRECACHE 含 camera-tab.js 後 +1 筆） |
+| 3 | Task7 | GitHub Pages 部署 + iPhone 真機驗收清單 | — | 排隊 |
 | 備註 | （未立案） | KML 地圖功能（行程地點地圖化） | — | 待 Olina 定案後由 PM 另立 Task 編號，暫不進佇列 |
 
 拆解原則：先做離線可跑的（Task1–4），後做需網路金鑰的難功能（Task5–6），最後部署（Task7）。每個 Task 小到 QA 能單輪 PASS/FAIL。
@@ -63,6 +65,12 @@
 閉環註記（2026-07-12）：**Task13 已正式閉環**（QA PASS，0 FAIL；sw.js 現為 v12；對話模式現為**雙向自動播音**——G4 守門兩方向共用（translate 當前分頁＋模式 talk），zh→ja-JP／ja→zh-TW，中→日路徑與 Task12 基線逐位元等價；Task12.api.md「zh-TW 僅重播鈕」自此為歷史語意，行為新權威 = Task13.spec.md，已於 SYSTEM_MAP 人工補充區註記——存檔不回改）。真機 zh-TW 發聲／音色由 Olina 部署後 iPhone 流程外驗收。剩餘佇列：**Task6（拍照 OCR）為下一個**（CACHE_VERSION 開工時實際值 +1＝v12→v13），其後 Task7（部署驗收）；KML 地圖待 Olina 定案後另立 Task（roadmap 備註）。
 
 決策註記（2026-07-12）：**Task5 開工前置已解除**——Olina 已申請金鑰、填入 `js/config.js` 並設好網站＋API 限制；同時拍板**金鑰納入版控**（翻轉上一條閉環註記內「gitignored、不進 repo」的舊語意，該句保留為歷史）。因 referer 鎖 `olina3221.github.io`，localhost 實呼叫必 403：QA 只驗邏輯/mock，真翻譯 E2E 歸 Olina 部署後 iPhone 流程外驗。`Task5.ready` 已建。
+
+排序調整（2026-07-12，第四批實機回饋）：新增 **Task14（版號可視化＋SW 更新機制可靠化）並插隊 Task6 之前**——Olina 部署 Task13 後 iPhone 實測：刷新近 10 次拿不到新版、畫面無版號無從判斷更新成敗。此為基礎建設（動 sw.js/app.js，與 Task6 衝突面重疊），先做才能讓後續每次部署的驗收有儀表可看。**重要現況更正**：sw.js 自 Task1 起已有 skipWaiting/claim，「新版 SW 卡 waiting」非根因；真正黏性路徑（更新檢查時機缺失/無版本回饋/重精快取盲刷窗口/HTTP cache）已在 `Task14.spec.md` 逐條盤點並全數覆蓋。定案：版號單一來源 `js/version.js`（`APP_VERSION`/`APP_VERSION_DATE`，徽章顯示 `v13 · 07/12` 於導覽列上方右側）＋與 sw.js `CACHE_VERSION` 雙常數同步（QA 機械判準逐字元相等，自此為 repo 級永續紀律）；更新策略＝`updateViaCache:'none'`＋visibilitychange/pageshow 觸發 `reg.update()`＋「有新版本，點一下更新」提示點擊 reload（**不自動 reload**，無限重整結構性不存在；首裝不彈）；fetch 策略維持 cache-first、**不做 SWR**（評估理由見 spec B3）。連動處置：**`Task6.sa_done` 由 PM 收回**（其 impact 機械基線——sw.js v13、PRECACHE 38 筆、app.js 零 diff——將被 Task14 改掉，留著會讓 backend 誤拾），Task14 閉環後 PM 重建 `Task6.ready` 交 SA 增量複核（`Task6.impact.md` 保留為基底）；Task6/7 各順延一位，版本序自動吸收（Task6 開工時 v13→v14）。
+
+開工註記（2026-07-12）：**Task6 spec 已完成**（`Task6.spec.md`）。設計依 Olina 截圖2 樣態：取景框＋掃描四角＋相簿鈕/大快門鈕；`getUserMedia` 即時取景失敗時**降級為原生拍照 `<input capture>`**（降級內建即為 de-risk，已拍板不另做探針）。OCR 方向固定日→中（語言列靜態標示，反向列 Non-scope）；`App.api.ocr` 端點契約定案 `TEXT_DETECTION`＋`languageHints:['ja']`、空結果 resolve `''`（比照 speechToText）、逐圖 `responses[0].error` reject HTTP_OTHER。camera-tab.js wrap `App.showTab`（離開分頁停 camera track），插 translate-tab.js 後、coupon-viewer.js 前，wrap 鏈成四層。影像只存記憶體不落地（隱私硬約束）。真 OCR E2E 因 referer 鎖 github.io 歸 Olina 部署後流程外驗，QA 驗 mock/降級/靜態判準。`Task6.ready` 已建，待 SA。（後續：SA 已完成影響分析並產 `Task6.impact.md`；Task14 插隊時 `Task6.sa_done` 由 PM 收回，重建時點見佇列表 Task6 列。）
+
+閉環註記（2026-07-12）：**Task14 已正式閉環**（QA PASS，機械判準 12 項全過 0 FAIL；sw.js 現為 v13、PRECACHE 38 筆＋version.js；**bump SOP 自此為「兩檔三行」repo 級永續紀律**——`js/version.js` 的 APP_VERSION（與 CACHE_VERSION 逐字元相等＝QA 每輪機械閘）＋APP_VERSION_DATE＋`sw.js` 的 CACHE_VERSION；畫面右下版號徽章 `v13 · 07/12`＝每次部署的驗收儀表；更新機制＝updateViaCache:'none'＋visibilitychange/pageshow 觸發 reg.update()＋「有新版本，點一下更新」toast（不自動 reload、首裝不彈），見 SYSTEM_MAP 人工補充區兩條新紀律）。真機更新體感（徽章可見、toast 觸發）由 Olina 部署後 iPhone 流程外確認。剩餘佇列（Olina 拍板）：**Task15（對話面對面 UI）為下一個，待 PM 撰 spec**；其後 Task6（拍照 OCR，`Task6.ready` 重建順延至 Task15 閉環後）→ Task7（部署驗收）；KML 地圖待 Olina 定案另立（roadmap 備註）。
 
 ## 檔案
 

@@ -116,13 +116,21 @@
 
   </nav>
 
+  <!-- Task14 — 版號徽章（文字由 app.js 填；HTML 不寫死版號）-->
+  <div id="app-version"></div>
+
+  <!-- Task14 — 更新提示（顯示/隱藏與 click handler 由 app.js 控）-->
+  <button id="update-toast" hidden>有新版本，點一下更新</button>
+
   <!-- ──────────────────────────────────────────────────────────
-    腳本載入順序（A6 — 前四項位置定死，Task2-6 不得更動）
+    腳本載入順序（A6 — Task14 修訂定死，Task2-6 不得更動）
+      version.js：版本常數（Task14 起，最前無依賴，APP_VERSION/APP_VERSION_DATE）
       config.js：onerror 容錯（A4）— window.APP_CONFIG 可能未定義
       phrases.js / tripdata.js：資料層，必須在 app.js 之前
       app.js：分頁框架 + App API + SW 註冊
       Task2-6 功能模組：app.js 之後插入，可直接同步呼叫 App.registerTab()
   ─────────────────────────────────────────────────────────── -->
+  <script src="./js/version.js"></script>
   <script src="./js/config.js" onerror="window._configLoadError=true"></script>
   <script src="./js/phrases.js"></script>
   <script src="./js/tripdata.js"></script>

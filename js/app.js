@@ -109,13 +109,83 @@
     var initialTab = (lastTab && TAB_IDS.indexOf(lastTab) !== -1) ? lastTab : TAB_IDS[0];
     App.showTab(initialTab);
 
-    // A5：相對路徑 Service Worker 註冊
+    // A5：Service Worker 註冊＋更新機制（Task14 擴充）
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then(function (reg) {
+
+      // Task14 首裝守門：在 register() 前快照；
+      // clients.claim() 首裝也會觸發 controllerchange，hadController=false 時兩路一律不彈
+      var hadController = !!navigator.serviceWorker.controller;
+      var _swReg = null;         // register resolve 後填入
+      var _updateShown = false;  // 記憶體 flag，防重複顯示（禁 localStorage）
+
+      // ── 版號徽章 ────────────────────────────────────────────
+      // 缺元素或缺常數（version.js 載入失敗）→ no-op，不壞頁
+      var _badge = document.getElementById('app-version');
+      if (_badge && window.APP_VERSION && window.APP_VERSION_DATE) {
+        _badge.textContent = window.APP_VERSION + ' · ' + window.APP_VERSION_DATE;
+      }
+
+      // ── 更新提示 Toast ───────────────────────────────────────
+      function _showUpdateToast() {
+        if (_updateShown) return;
+        if (!hadController) return; // 首裝不彈
+        _updateShown = true;
+        var _toast = document.getElementById('update-toast');
+        if (_toast) _toast.hidden = false;
+      }
+
+      // Toast click → reload（全檔唯一 location.reload）
+      var _toastEl = document.getElementById('update-toast');
+      if (_toastEl) {
+        _toastEl.addEventListener('click', function () {
+          location.reload();
+        });
+      }
+
+      // ── 更新檢查觸發 ─────────────────────────────────────────
+      // S2：register resolve 前 pageshow/visibilitychange 就會 fire → null-check → no-op
+      // S1：update() 失敗是 promise rejection，不能靠 try/catch，必須 .catch()
+      function _triggerUpdate() {
+        if (!_swReg) return;
+        _swReg.update().catch(function () {});
+      }
+
+      // S3：visibilitychange 掛 document，pageshow 掛 window，DOMContentLoaded 內各一次
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') _triggerUpdate();
+      });
+      window.addEventListener('pageshow', function () {
+        _triggerUpdate();
+      });
+
+      // ── 更新偵測（兩路）────────────────────────────────────
+      // 路徑 A：controllerchange（S4：hadController=false 首裝不彈）
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        _showUpdateToast();
+      });
+
+      // 路徑 B：updatefound → 新 worker statechange 至 activated
+      function _watchForUpdate(reg) {
+        reg.addEventListener('updatefound', function () {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function () {
+            if (newWorker.state === 'activated') {
+              _showUpdateToast();
+            }
+          });
+        });
+      }
+
+      // ── 註冊（P4：updateViaCache:'none' 釘死，避免 sw.js 被 HTTP cache 黏住）──
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
         console.log('[App] SW registered, scope:', reg.scope);
+        _swReg = reg;
+        _watchForUpdate(reg);
       }).catch(function (err) {
         console.warn('[App] SW registration failed (offline mode unavailable):', err);
       });
+
     }
   });
 
