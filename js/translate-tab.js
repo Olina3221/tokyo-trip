@@ -96,6 +96,11 @@
   // ── DOM 參照（_initialized 後填入） ──────────────────────────────────────
   var _el = {};
 
+  // ── Task18: 加入常用語 — session 分類記憶 + 選擇列 DOM state ─────────────
+  var _lastCatId        = 'dining';   // session 上次選的分類（初值 dining）
+  var _catPickOpen      = false;      // 選擇列展開旗標
+  var _catPickDocListener = null;     // 外部收合 listener（展開掛、收合卸）
+
   // ── 渲染輔助 ─────────────────────────────────────────────────────────────
   function _updateDirLabel() {
     _el.dirLabel.textContent = DIRS[_dir].label;
@@ -122,6 +127,7 @@
     if (zh2ja) {
       _el.speakBtn.disabled = !App.speak.isAvailable;
     }
+    _el.addPhraseBtn.style.display = zh2ja ? '' : 'none';   // B: 加入鈕與大字/播音同進退
   }
 
   function _showResult(result) {
@@ -142,6 +148,30 @@
     _lastResult = '';
     _el.resultArea.style.display = 'none';
     _el.errorArea.style.display  = 'none';
+    _collapseCatPicker();   // C: 收合分類選擇列（方向切換 + 重翻皆走此路）
+  }
+
+  // ── Task18: 分類選擇列輔助函式 ────────────────────────────────────────────
+  function _collapseCatPicker() {
+    if (!_el.catPick || !_catPickOpen) return;
+    _catPickOpen = false;
+    _el.catPick.style.display = 'none';
+    if (_catPickDocListener) {
+      document.removeEventListener('click', _catPickDocListener);
+      _catPickDocListener = null;
+    }
+  }
+
+  function _updateCatPickHighlight() {
+    if (!_el.catPick) return;
+    var chips = _el.catPick.querySelectorAll('.translate-catpick-chip');
+    for (var i = 0; i < chips.length; i++) {
+      if (chips[i].getAttribute('data-cat-id') === _lastCatId) {
+        chips[i].classList.add('translate-catpick-chip-highlight');
+      } else {
+        chips[i].classList.remove('translate-catpick-chip-highlight');
+      }
+    }
   }
 
   // ── DOM 建構（只跑一次）────────────────────────────────────────────────────
@@ -240,8 +270,63 @@
     resultActions.appendChild(bigTextBtn);
     resultActions.appendChild(speakBtn);
     resultActions.appendChild(copyBtn);
+
+    // ── Task18 A: 加入常用語鈕（第 4 顆，僅 zh2ja 顯示；B 控制）────────────
+    var addPhraseBtn = document.createElement('button');
+    addPhraseBtn.type        = 'button';
+    addPhraseBtn.className   = 'translate-action-btn translate-addphrase-btn';
+    addPhraseBtn.textContent = '加入常用語';
+    _el.addPhraseBtn = addPhraseBtn;
+    resultActions.appendChild(addPhraseBtn);
+
+    // ── Task18 A: 分類選擇列（六 chips，初始收合）────────────────────────────
+    var catPick = document.createElement('div');
+    catPick.className     = 'translate-cat-pick';
+    catPick.style.display = 'none';
+    _el.catPick = catPick;
+
+    var catLabels = [
+      { id: 'greetings', label: '溝通・語言' },
+      { id: 'dining',    label: '餐廳・點餐' },
+      { id: 'shopping',  label: '購物・付款' },
+      { id: 'transport', label: '交通・問路' },
+      { id: 'hotel',     label: '飯店・住宿' },
+      { id: 'emergency', label: '緊急・求助' },
+    ];
+    catLabels.forEach(function (cat) {
+      var chip = document.createElement('button');
+      chip.type      = 'button';
+      chip.className = 'translate-catpick-chip';
+      chip.setAttribute('data-cat-id', cat.id);
+      chip.textContent = cat.label;
+      (function (catId) {
+        chip.addEventListener('click', function (e) {
+          e.stopPropagation();   // 防收合 listener 攔截（catPick.contains 理論可擋，防禦層加固）
+          _lastCatId = catId;
+          _collapseCatPicker();
+          // 存入 myPhrases 並回饋按鈕文字（比照複製鈕 1.5s 暫換模式）
+          var orig = _el.addPhraseBtn.textContent;
+          if (!App.myPhrases || !App.myPhrases.isAvailable()) {
+            _el.addPhraseBtn.textContent = '無法儲存';
+          } else {
+            var res = App.myPhrases.add({ zh: _lastInput, ja: _lastResult, catId: catId });
+            if (res.ok && !res.duplicate) {
+              _el.addPhraseBtn.textContent = '已加入';
+            } else if (res.ok && res.duplicate) {
+              _el.addPhraseBtn.textContent = '已在常用語';
+            } else {
+              _el.addPhraseBtn.textContent = '無法儲存';
+            }
+          }
+          setTimeout(function () { _el.addPhraseBtn.textContent = orig; }, 1500);
+        });
+      })(cat.id);
+      catPick.appendChild(chip);
+    });
+
     resultArea.appendChild(resultText);
     resultArea.appendChild(resultActions);
+    resultArea.appendChild(catPick);     // Task18 A: 分類選擇列插在動作列下方
 
     // ── 錯誤區（預設隱藏）────────────────────────────────────────────────
     var errorArea = document.createElement('div');
@@ -315,6 +400,23 @@
           setTimeout(function () { copyBtn.textContent = orig; }, 1500);
         })
         .catch(function () { /* 複製失敗靜默，不彈窗 */ });
+    });
+
+    // ── Task18 A: 加入常用語鈕 handler ──────────────────────────────────────
+    addPhraseBtn.addEventListener('click', function (e) {
+      e.stopPropagation();   // 防開啟點擊冒泡到 document 立即誤收（Task18 §8b）
+      if (!_lastResult) return;
+      if (_catPickOpen) { _collapseCatPicker(); return; }
+      // 展開選擇列
+      _catPickOpen = true;
+      _el.catPick.style.display = '';
+      _updateCatPickHighlight();
+      // 掛 document 外部收合 listener（展開時掛，收合時由 _collapseCatPicker 卸）
+      _catPickDocListener = function (ev) {
+        if (_el.catPick.contains(ev.target) || addPhraseBtn.contains(ev.target)) return;
+        _collapseCatPicker();
+      };
+      document.addEventListener('click', _catPickDocListener);
     });
   }
 
@@ -805,6 +907,7 @@
 
   // 切換模式顯示（切模式時若 state ≠ idle 先 abortTalk，G1）
   function _switchMode(mode) {
+    _collapseCatPicker();   // E: 切模式時收合分類選擇列（防殘留展開）
     if (mode === _getMode() && _segInitialized) {
       // 同一模式重按：僅確保容器可見性正確
     }
@@ -908,7 +1011,8 @@
         var section = document.getElementById('tab-translate');
         var translateVisible = section && !section.hidden;
         if (translateVisible) {
-          _abortTalk();  // 包含 abort + cancel + 清 timer + 回 idle
+          _abortTalk();           // 包含 abort + cancel + 清 timer + 回 idle
+          _collapseCatPicker();   // D: 切分頁時收合分類選擇列
         }
       }
       return _origShowTabFromTranslate(id);

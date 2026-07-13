@@ -113,6 +113,87 @@
     }
   }
 
+  // ─── 建立自訂句列表項（Task18）────────────────────────────
+  function _buildMyPhraseItem(item, ttsAvailable) {
+    var li = document.createElement('li');
+    li.className = 'phrases-item phrases-item-mine';
+
+    // ── 句子本體（點擊開大字 overlay）────────────────────────
+    var bodyBtn = document.createElement('button');
+    bodyBtn.type      = 'button';
+    bodyBtn.className = 'phrases-item-body';
+    bodyBtn.setAttribute('aria-label', (item.zh || item.ja));
+
+    var mineLabel = document.createElement('span');
+    mineLabel.className   = 'phrases-mine-label';
+    mineLabel.textContent = '自訂';
+
+    var zhSpan = document.createElement('span');
+    zhSpan.className   = 'phrases-zh';
+    zhSpan.textContent = item.zh || '';
+
+    var jaSpan = document.createElement('span');
+    jaSpan.className   = 'phrases-ja';
+    jaSpan.textContent = item.ja;
+
+    var romajiSpan = document.createElement('span');
+    romajiSpan.className   = 'phrases-romaji';
+    romajiSpan.textContent = item.romaji || '';
+
+    bodyBtn.appendChild(mineLabel);
+    bodyBtn.appendChild(zhSpan);
+    bodyBtn.appendChild(jaSpan);
+    bodyBtn.appendChild(romajiSpan);
+
+    // 閉包捕捉 item（防注入：一律 textContent，內容來自使用者輸入+API）
+    (function (capturedItem) {
+      bodyBtn.addEventListener('click', function () {
+        App.showBigText({ ja: capturedItem.ja, zh: capturedItem.zh });
+      });
+    })(item);
+
+    li.appendChild(bodyBtn);
+
+    // ── 播放鈕（比照內建守 ttsAvailable，spec Task18 §4 補定案）────
+    var speakBtn = document.createElement('button');
+    speakBtn.type      = 'button';
+    speakBtn.className = 'phrases-speak-btn';
+    speakBtn.setAttribute('aria-label', '播放日文語音');
+    speakBtn.textContent = '🔊';
+
+    if (!ttsAvailable) {
+      speakBtn.disabled = true;
+      speakBtn.setAttribute('title', '此裝置不支援語音');
+    } else {
+      (function (capturedJa) {
+        speakBtn.addEventListener('click', function () {
+          App.speak(capturedJa);
+        });
+      })(item.ja);
+    }
+
+    li.appendChild(speakBtn);
+
+    // ── 刪除鈕（只自訂句有，confirm 確認防誤觸）─────────────
+    var deleteBtn = document.createElement('button');
+    deleteBtn.type      = 'button';
+    deleteBtn.className = 'phrases-delete-btn';
+    deleteBtn.setAttribute('aria-label', '刪除這句自訂常用語');
+    deleteBtn.textContent = '🗑';
+
+    (function (capturedItem) {
+      deleteBtn.addEventListener('click', function () {
+        if (!confirm('刪除這句常用語？')) return;
+        App.myPhrases.remove(capturedItem.zh, capturedItem.ja);
+        _renderListArea(_findCatById(_currentCatId));   // 重繪當前分類
+      });
+    })(item);
+
+    li.appendChild(deleteBtn);
+
+    return li;
+  }
+
   // ─── 重繪句子列表（分類切換時觸發）────────────────────────
   // 每次重繪整塊丟棄後重建，listener 隨 DOM 消滅，無殘留問題。
   function _renderListArea(group) {
@@ -129,6 +210,16 @@
     var listEl = document.createElement('ul');
     listEl.className = 'phrases-list';
 
+    // ── Task18: 自訂句（排最前，新→舊；缺載或 [] 時跳過）────
+    var myItems = (App.myPhrases && typeof App.myPhrases.getByCat === 'function')
+      ? App.myPhrases.getByCat(group.id)
+      : [];
+    myItems.forEach(function (item) {
+      if (!item || !item.ja) return;
+      listEl.appendChild(_buildMyPhraseItem(item, ttsAvailable));
+    });
+
+    // ── 內建句（原順序，零 diff）──────────────────────────────
     group.items.forEach(function (item) {
       if (!item || !item.ja) return; // ja 缺則略過
 
@@ -265,7 +356,12 @@
   // ─── 掛載分頁（A1：必須用 App.registerTab）──────────────────
   App.registerTab('phrases', {
     onShow: function () {
-      if (_initialized) return; // 冪等：shell 只建一次，切分頁不疊 DOM
+      if (_initialized) {
+        // Task18 冪等擴充：直達重繪當前分類（自訂句可能剛從翻譯側新增）
+        // 禁走 _selectCat（避免多寫 phrasesCat）；_renderListArea 整塊重建天然冪等
+        _renderListArea(_findCatById(_currentCatId));
+        return;
+      }
       _render();
     },
   });

@@ -2967,3 +2967,111 @@ body {
   font-size: 15px;
   line-height: 1.5;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   Task18 — 文字翻譯「加入常用語」＋常用句自訂標記
+   禁 --fs-*（type scale 只授權 .trip-*）；禁 z-index ≥100；
+   字色一律用 --c-accent-text 對比紀律；淺色主題全域變數。
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 加入常用語鈕（第 4 顆 action btn；繼承 .translate-action-btn 基底）
+   與大字/播音/複製排同列；.translate-result-actions 既有 flex-wrap:wrap
+   換行順、不壓縮高度，4 顆鈕在窄螢幕自然折行，無需額外動作。          */
+.translate-addphrase-btn {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
+  border: 1px solid rgba(77, 124, 244, 0.22);
+}
+
+/* ── 分類選擇列容器（就地展開 inline，不做 overlay；JS 控 display）─────
+   flex-wrap 讓六 chips 在窄螢幕自然折行；圓角淺底與結果區形成區隔。     */
+.translate-cat-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+  border: 1px solid var(--c-divider);
+}
+
+/* ── 分類選擇 chip（觸控目標 ≥44px；hardcode 字級，禁 --fs-*）─────────── */
+.translate-catpick-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 22px;
+  color: var(--c-text-muted);
+  font-size: 14px;   /* hardcode，禁 --fs-* */
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.translate-catpick-chip:active {
+  opacity: 0.65;
+}
+
+/* ── 預設高亮 chip（session 上次選的分類；描邊樣式 vs 實底）──────────────
+   描邊（outline）= 高亮態；此 picker 展開即取消選中，故無「實底選中態」。
+   明顯 accent 描邊 + 淡底，提供視覺引導；仍可點選其他 chip。             */
+.translate-catpick-chip-highlight {
+  background: rgba(77, 124, 244, 0.10);
+  border-color: var(--c-accent-text);   /* 深階 accent，淺底 AA */
+  color: var(--c-accent-text);
+}
+
+/* ── 自訂句列表項（淺色底 + 左邊框；不靠顏色單獨傳達）────────────────────
+   .phrases-mine-label「自訂」小標為非顏色標記；背景 + 邊框做補充識別。
+   .phrases-item 的 flex / border-bottom 基底樣式完整保留，此處只疊加。   */
+.phrases-item-mine {
+  background-color: rgba(77, 124, 244, 0.04);
+  border-left: 3px solid var(--c-accent);
+}
+
+/* ── 「自訂」小標 badge（文字標記，不靠顏色單獨傳達的第一道保障）──────── */
+.phrases-mine-label {
+  display: inline-block;
+  font-size: 11px;   /* hardcode，禁 --fs-* */
+  font-weight: 700;
+  color: var(--c-accent-text);   /* 淺底文字用深階 accent（AA）*/
+  background-color: rgba(77, 124, 244, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+  border: 1px solid rgba(77, 124, 244, 0.25);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── 自訂句刪除鈕（觸控目標 ≥44px；紅色系 #C63A3A = Task11 A8 同值）──────
+   高度繼承 .phrases-item align-items:stretch（實際高度由 body min-h:64px 撐）；
+   min-width ≥44px 保橫向觸控；只自訂句 .phrases-item-mine 有，不誤觸播放鈕。*/
+.phrases-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 52px;
+  padding: 0 6px;
+  background: none;
+  border: none;
+  font-size: 18px;   /* hardcode，禁 --fs-* */
+  color: #C63A3A;    /* Task11 A8 同值：深紅，淺底可辨識（AA 約 5.5:1）*/
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.phrases-delete-btn:active {
+  opacity: 0.5;
+}
