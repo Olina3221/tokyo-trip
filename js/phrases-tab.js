@@ -205,6 +205,12 @@
       return;
     }
 
+    // Task19: 開頭一次讀取——隱藏清單＋可用性判定（禁放進迴圈）
+    var hiddenList = (App.myPhrases && typeof App.myPhrases.getHidden === 'function')
+      ? App.myPhrases.getHidden()
+      : [];
+    var canHide = !!(App.myPhrases && typeof App.myPhrases.hide === 'function' && App.myPhrases.isAvailable());
+
     var ttsAvailable = App.speak && App.speak.isAvailable;
 
     var listEl = document.createElement('ul');
@@ -219,9 +225,17 @@
       listEl.appendChild(_buildMyPhraseItem(item, ttsAvailable));
     });
 
-    // ── 內建句（原順序，零 diff）──────────────────────────────
+    // ── 內建句（原順序；Task19 隱藏濾除＋刪除鈕）────────────
     group.items.forEach(function (item) {
       if (!item || !item.ja) return; // ja 缺則略過
+
+      // Task19: 本地比對濾除隱藏句（zh trim＋ja 全等，禁逐句呼叫 isHidden）
+      var zhTrimItem = typeof item.zh === 'string' ? item.zh.trim() : '';
+      for (var h = 0; h < hiddenList.length; h++) {
+        if (hiddenList[h].zh === zhTrimItem && hiddenList[h].ja === item.ja) {
+          return; // 已隱藏，跳過此句
+        }
+      }
 
       var li = document.createElement('li');
       li.className = 'phrases-item';
@@ -280,10 +294,46 @@
       }
 
       li.appendChild(speakBtn);
+
+      // Task19: 內建句刪除鈕（canHide 為 true 才渲染；無痕降級不出現）
+      if (canHide) {
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'phrases-delete-btn';
+        deleteBtn.setAttribute('aria-label', '刪除這句常用語');
+        deleteBtn.textContent = '🗑';
+
+        (function (capturedItem) {
+          deleteBtn.addEventListener('click', function () {
+            if (!confirm('刪除這句常用語？')) return;
+            App.myPhrases.hide(capturedItem.zh, capturedItem.ja);
+            _renderListArea(_findCatById(_currentCatId)); // 直達重繪當前分類
+          });
+        })(item);
+
+        li.appendChild(deleteBtn);
+      }
+
       listEl.appendChild(li);
     });
 
     _listArea.appendChild(listEl);
+
+    // Task19: 一鍵總還原鈕（隱藏清單非空且 canHide 時渲染，全域計數）
+    if (hiddenList.length > 0 && canHide) {
+      var restoreBtn = document.createElement('button');
+      restoreBtn.type = 'button';
+      restoreBtn.className = 'phrases-restore-btn';
+      restoreBtn.textContent = '還原已隱藏的常用句（' + hiddenList.length + ' 句）';
+
+      restoreBtn.addEventListener('click', function () {
+        if (!confirm('還原所有已隱藏的常用句？')) return;
+        App.myPhrases.unhideAll();
+        _renderListArea(_findCatById(_currentCatId)); // 直達重繪
+      });
+
+      _listArea.appendChild(restoreBtn);
+    }
   }
 
   // ─── 切換至指定分類 ────────────────────────────────────────
