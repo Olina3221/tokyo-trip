@@ -41,6 +41,7 @@ tokyo-trip/
 ├── .gitignore              ✅ Task1,5  Task5 起不再排除 js/config.js（金鑰版控化拍板）
 ├── README.md               ✅ Task1,5  安裝、金鑰設定、部署說明（Task5 金鑰語意改寫：納入版控＋referer/API 兩層限制＋輪替 SOP）
 ├── DEVELOPMENT_LOG.md      ✅        進度檔（PM 閉環閘依賴）
+├── 行前檢查清單.md          ✅ Task7  行前檢查清單（純文件，不進快取、不入 PRECACHE；A 部分＝APP 真機驗收 9 節——整併歷次 Task 移交的「Olina 部署後 iPhone 流程外驗收」項，B 部分＝證件/手機連線/隨身行李；無個資——證件只勾「確認已帶」不寫號碼；APP 內容有異動時由該輪 PM 同步增修對應驗收項）
 └── specs/                  ✅        spec 與 sentinel
 ```
 
