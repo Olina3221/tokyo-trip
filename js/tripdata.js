@@ -35,7 +35,7 @@ window.TRIP = {
     {
       name: "MAPLEHOUSE 浅草",
       checkin: "2026/07/21",
-      checkout: "2026/07/25 08:30",
+      checkout: "2026/07/25 10:00",
       // address_ja：給計程車司機／店員看的日文地址（大字展示用）
       address_ja: "〒111-0043 東京都台東区駒形1-2-10 MAPLEHOUSE 浅草",
       address_zh: "東京都台東區駒形1-2-10",
@@ -253,8 +253,8 @@ window.TRIP = {
       items: [
         {
           time: "08:30",
-          title: "MAPLEHOUSE 淺草退房",
-          detail: "",
+          title: "離開民宿前往機場",
+          detail: "民宿退房時間最晚 10:00，我們提早出發",
         },
         {
           time: "08:50",
