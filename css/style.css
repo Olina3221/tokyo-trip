@@ -1267,6 +1267,206 @@ body {
 }
 
 
+/* ════════════════════════════════════════════════════════════
+   Task21 — 民宿入住資訊（trip-lodging-*）
+   DOM 由 js/trip-tab.js _renderLodgingBlock() 渲染；class 名見 Task21.api.md
+   字級用 var(--fs-*)（SA 裁定，B7-4 G4-16 已作廢）
+   排版沿用 Task20 雙模式（overflow-wrap:anywhere 值欄、標籤不固定寬）
+   ════════════════════════════════════════════════════════════ */
+
+/* 容器：緊接在最後一張 .trip-hotel-card 之後 */
+.trip-lodging {
+  margin-top: 16px;
+  padding: 16px 16px 0;
+  border-top: 1px solid var(--c-divider);
+}
+
+.trip-lodging-title {
+  font-size: var(--fs-lg);   /* lg = 19px，與 .trip-section-title 視覺語言對齊 */
+  font-weight: 700;
+  color: var(--c-text);
+  margin: 0 0 14px;
+}
+
+/* § B3-1 名稱 + 房號 */
+.trip-lodging-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin-bottom: 8px;
+}
+
+.trip-lodging-name {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.trip-lodging-room {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
+
+/* § B3-2 入住退房 */
+.trip-lodging-dates {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  margin-bottom: 14px;
+}
+
+/* 區段容器 */
+.trip-lodging-section {
+  margin-bottom: 14px;
+}
+
+.trip-lodging-section-title {
+  font-size: var(--fs-xs);   /* xs = 13px，區段 caption */
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  margin: 0 0 6px;
+}
+
+/* Row 排版（雙模式：短標籤橫排、長標籤上下堆疊）
+   Task21 SA §4.2：沿用 Task20 自適應雙模式，值欄改用 overflow-wrap:anywhere（更正確） */
+.trip-lodging-row {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 44px;
+  padding: 2px 0;
+}
+
+.trip-lodging-row-label {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 56px;
+  max-width: 100%;
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  padding-top: 10px;
+  line-height: 1.4;
+}
+
+.trip-lodging-row-value {
+  flex: 1;
+  min-width: 80px;   /* WiFi 行形狀比例，不照抄 Task20 的 200px */
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--c-text);
+  overflow-wrap: anywhere;   /* SA §4.2：必用 anywhere，不可用 break-word */
+  padding-top: 10px;
+  line-height: 1.4;
+}
+
+/* 輕量複製鈕（不沿用 .trip-btn，SA §3.3：390px 下全面換行+視覺過重） */
+.trip-lodging-copy-btn {
+  flex-shrink: 0;
+  align-self: center;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-accent-text);
+  background: rgba(77, 124, 244, 0.12);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.trip-lodging-copy-btn:active {
+  background: rgba(77, 124, 244, 0.24);
+}
+
+/* § B3-4 自助入住 */
+.trip-lodging-selfcheckin {
+  font-size: var(--fs-sm);
+  color: var(--c-text);
+  line-height: 1.6;
+  white-space: pre-wrap;   /* \n 換行（B8 注意事項） */
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* § B3-6 WiFi 每樓層卡片 */
+.trip-lodging-wifi-entry {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--c-divider);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.trip-lodging-wifi-floor {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--c-accent-text);
+  margin-bottom: 2px;
+}
+
+/* § B3-7 住宿須知 */
+.trip-lodging-notes {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.trip-lodging-note-item {
+  font-size: var(--fs-sm);
+  color: var(--c-text);
+  line-height: 1.65;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+
+/* § B3-8 房東聯絡電話 */
+.trip-lodging-host-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 44px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.trip-lodging-host-row:last-child {
+  border-bottom: none;
+}
+
+.trip-lodging-host-name {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  flex-shrink: 0;
+}
+
+.trip-lodging-host-tel {
+  font-size: var(--fs-md);
+  color: var(--c-accent-text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.trip-lodging-host-tel:active {
+  opacity: 0.7;
+}
+
+/* B6 空狀態提示 */
+.trip-lodging-empty {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  line-height: 1.55;
+  padding: 12px 0 16px;
+  margin: 0;
+}
+
 
 /* ════════════════════════════════════════════════════════════
    Task8 — B2 常用句分類 chips 導覽

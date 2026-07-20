@@ -20,7 +20,8 @@
   'use strict';
 
   var _initialized = false;
-  var _privateSectionEl = null; // 本機資料容器（僅重繪此段）
+  var _privateSectionEl = null;   // 本機資料容器（僅重繪此段）
+  var _lodgingContainerEl = null; // 民宿入住資訊容器（Task21，恆建立）
 
   // R2 行程視圖狀態機（Task10）
   var _itinView = 'overview'; // 'overview' | 數字 dayIdx
@@ -364,6 +365,11 @@
 
     if (!data || !data.hotels || !data.hotels.length) {
       sec.innerHTML = '<p class="trip-error">飯店資料載入失敗</p>';
+      // [Task21 §2.4] 容器必須在 innerHTML 賦值之後建立，且早退路徑也要建立。
+      // 「公開資料掛了、私密入住資訊仍該看得到」——本機層與 TRIP 無依賴關係。
+      _lodgingContainerEl = document.createElement('div');
+      _lodgingContainerEl.className = 'trip-lodging';
+      sec.appendChild(_lodgingContainerEl);
       return sec;
     }
 
@@ -458,7 +464,242 @@
       sec.appendChild(card);
     });
 
+    // [Task21 §2.4] 正常路徑——飯店卡全部 append 後再建容器（順序後於任何 .trip-hotel-card）
+    _lodgingContainerEl = document.createElement('div');
+    _lodgingContainerEl.className = 'trip-lodging';
+    sec.appendChild(_lodgingContainerEl);
+
     return sec;
+  }
+
+  // ── 渲染：民宿入住資訊（Task21，冪等重繪）────────────────────
+
+  function _renderLodgingBlock() {
+    if (!_lodgingContainerEl) return;
+    // §2.5 防禦：import-data.js 尚未載入時安全 no-op
+    if (!App.privateData) return;
+
+    _lodgingContainerEl.innerHTML = '';
+
+    // ── B6 狀態一：localStorage 不可用 ──
+    if (!App.privateData.isAvailable()) {
+      var unavailP = document.createElement('p');
+      unavailP.className = 'trip-lodging-empty';
+      unavailP.textContent = '此環境無法讀取住宿資訊，請在加入主畫面後的 APP 內操作（Safari 分頁與 APP 的資料不互通）。';
+      _lodgingContainerEl.appendChild(unavailP);
+      return;
+    }
+
+    var pdata = App.privateData.get();
+    // §A3 型別防禦：lodging 非物件（null / 字串 / 陣列）視同未提供
+    var ld = (pdata && typeof pdata === 'object' && !Array.isArray(pdata)) ? pdata.lodging : undefined;
+    var lodgingValid = ld && typeof ld === 'object' && !Array.isArray(ld);
+
+    // ── B6 狀態二三：未匯入 or 已匯入但無 lodging ──
+    if (!pdata || !lodgingValid) {
+      var emptyP = document.createElement('p');
+      emptyP.className = 'trip-lodging-empty';
+      emptyP.textContent = '尚未匯入住宿資訊。請到「行程 → 重要資料」貼上匯入碼，門鎖密碼與 WiFi 會顯示在這裡。';
+      _lodgingContainerEl.appendChild(emptyP);
+      return;
+    }
+
+    var l = ld; // 已確認為物件
+
+    // ── 標題 ──
+    var titleEl = document.createElement('h3');
+    titleEl.className = 'trip-lodging-title';
+    titleEl.textContent = '民宿入住資訊';
+    _lodgingContainerEl.appendChild(titleEl);
+
+    // ── 工具：建立標籤-值列（含選填複製鈕）──
+    // 複製鈕用 btn.parentNode（= row）觸發 showTip，parentNode 必存在。
+    function makeRow(labelTxt, valueTxt, copyValue) {
+      var row = document.createElement('div');
+      row.className = 'trip-lodging-row';
+      var lbl = document.createElement('span');
+      lbl.className = 'trip-lodging-row-label';
+      lbl.textContent = labelTxt;
+      var val = document.createElement('span');
+      val.className = 'trip-lodging-row-value';
+      val.textContent = valueTxt;
+      row.appendChild(lbl);
+      row.appendChild(val);
+      if (copyValue) {
+        var btn = document.createElement('button');
+        btn.className = 'trip-lodging-copy-btn';
+        btn.textContent = '複製';
+        (function (text, b) {
+          b.addEventListener('click', function () {
+            copyToClipboard(
+              text,
+              function () { showTip(b, '已複製！'); },
+              function () { showTip(b, '請手動長按複製'); }
+            );
+          });
+        })(copyValue, btn);
+        row.appendChild(btn);
+      }
+      return row;
+    }
+
+    // ── 區段工具 ──
+    function makeSection(titleTxt) {
+      var sec = document.createElement('div');
+      sec.className = 'trip-lodging-section';
+      var h = document.createElement('h4');
+      h.className = 'trip-lodging-section-title';
+      h.textContent = titleTxt;
+      sec.appendChild(h);
+      return sec;
+    }
+
+    // §B3-1：名稱 + 房號
+    if (l.name || l.room) {
+      var nameRow = document.createElement('div');
+      nameRow.className = 'trip-lodging-name-row';
+      if (l.name) {
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'trip-lodging-name';
+        nameSpan.textContent = l.name;
+        nameRow.appendChild(nameSpan);
+      }
+      if (l.room) {
+        var roomSpan = document.createElement('span');
+        roomSpan.className = 'trip-lodging-room';
+        roomSpan.textContent = '房號：' + l.room;
+        nameRow.appendChild(roomSpan);
+      }
+      _lodgingContainerEl.appendChild(nameRow);
+    }
+
+    // §B3-2：入住／退房
+    if (l.checkinTime || l.checkoutTime) {
+      var datesDiv = document.createElement('div');
+      datesDiv.className = 'trip-lodging-dates';
+      var datesTxt;
+      if (l.checkinTime && l.checkoutTime) {
+        datesTxt = '入住 ' + l.checkinTime + ' → 退房 ' + l.checkoutTime;
+      } else if (l.checkinTime) {
+        datesTxt = '入住 ' + l.checkinTime;
+      } else {
+        datesTxt = '退房 ' + l.checkoutTime;
+      }
+      datesDiv.textContent = datesTxt;
+      _lodgingContainerEl.appendChild(datesDiv);
+    }
+
+    // §B3-3：門鎖密碼
+    if (l.entranceCode || l.roomCode) {
+      var doorSec = makeSection('門鎖密碼');
+      if (l.entranceCode) doorSec.appendChild(makeRow('一樓入口', l.entranceCode, l.entranceCode));
+      if (l.roomCode)     doorSec.appendChild(makeRow('房間',     l.roomCode,     l.roomCode));
+      _lodgingContainerEl.appendChild(doorSec);
+    }
+
+    // §B3-4：自助入住（CSS white-space:pre-wrap 處理 \n）
+    if (l.selfCheckin) {
+      var selfSec = makeSection('自助入住');
+      var selfP = document.createElement('p');
+      selfP.className = 'trip-lodging-selfcheckin';
+      selfP.textContent = l.selfCheckin;
+      selfSec.appendChild(selfP);
+      _lodgingContainerEl.appendChild(selfSec);
+    }
+
+    // §B3-5：地址（§A4 去重規則）
+    var showZh = false;
+    if (l.addressZh) {
+      var pubZh = '';
+      try {
+        if (window.TRIP && window.TRIP.hotels && window.TRIP.hotels.length) {
+          pubZh = (window.TRIP.hotels[0].address_zh || '').trim();
+        }
+      } catch (e) { /* TRIP 缺載時不比對，直接渲染 */ }
+      showZh = (pubZh === '') || (l.addressZh.trim() !== pubZh);
+    }
+    var showEn = !!l.addressEn;
+    if (showZh || showEn) {
+      var addrSec = makeSection('地址');
+      if (showZh) addrSec.appendChild(makeRow('中文', l.addressZh, l.addressZh));
+      if (showEn) addrSec.appendChild(makeRow('英文', l.addressEn, l.addressEn));
+      _lodgingContainerEl.appendChild(addrSec);
+    }
+
+    // §B3-6：WiFi（任意組數）
+    var wifiArr = Array.isArray(l.wifi) ? l.wifi : null;
+    if (wifiArr && wifiArr.length > 0) {
+      var wifiSec = makeSection('WiFi');
+      wifiArr.forEach(function (w) {
+        if (!w || typeof w !== 'object' || Array.isArray(w)) return;
+        if (!w.floor && !w.ssid && !w.password) return;
+        var entry = document.createElement('div');
+        entry.className = 'trip-lodging-wifi-entry';
+        if (w.floor) {
+          var floorDiv = document.createElement('div');
+          floorDiv.className = 'trip-lodging-wifi-floor';
+          floorDiv.textContent = w.floor;
+          entry.appendChild(floorDiv);
+        }
+        if (w.ssid)     entry.appendChild(makeRow('SSID', w.ssid,     w.ssid));
+        if (w.password) entry.appendChild(makeRow('密碼', w.password, w.password));
+        wifiSec.appendChild(entry);
+      });
+      // 若所有 wifi 項目都無效（只留了標題），則不渲染
+      if (wifiSec.children.length > 1) {
+        _lodgingContainerEl.appendChild(wifiSec);
+      }
+    }
+
+    // §B3-7：住宿須知
+    var notesArr = Array.isArray(l.notes) ? l.notes : null;
+    if (notesArr && notesArr.length > 0) {
+      var ul = document.createElement('ul');
+      ul.className = 'trip-lodging-notes';
+      notesArr.forEach(function (note) {
+        if (typeof note !== 'string') return;
+        var li = document.createElement('li');
+        li.className = 'trip-lodging-note-item';
+        li.textContent = note;
+        ul.appendChild(li);
+      });
+      if (ul.children.length > 0) {
+        var notesSec = makeSection('住宿須知');
+        notesSec.appendChild(ul);
+        _lodgingContainerEl.appendChild(notesSec);
+      }
+    }
+
+    // §B3-8：房東聯絡電話
+    var hostsArr = Array.isArray(l.hostContacts) ? l.hostContacts : null;
+    if (hostsArr && hostsArr.length > 0) {
+      var hostSec = makeSection('房東聯絡電話');
+      var hostCount = 0;
+      hostsArr.forEach(function (h) {
+        if (!h || typeof h !== 'object' || Array.isArray(h)) return;
+        if (!h.name && !h.tel) return;
+        var hostRow = document.createElement('div');
+        hostRow.className = 'trip-lodging-host-row';
+        if (h.name) {
+          var nameEl = document.createElement('span');
+          nameEl.className = 'trip-lodging-host-name';
+          nameEl.textContent = h.name;
+          hostRow.appendChild(nameEl);
+        }
+        if (h.tel) {
+          var telLink = document.createElement('a');
+          telLink.href = 'tel:' + h.tel;
+          telLink.className = 'trip-lodging-host-tel';
+          telLink.textContent = h.tel;
+          hostRow.appendChild(telLink);
+        }
+        hostSec.appendChild(hostRow);
+        hostCount++;
+      });
+      if (hostCount > 0) {
+        _lodgingContainerEl.appendChild(hostSec);
+      }
+    }
   }
 
   // ── 渲染：重要資料區塊（公開段）──────────────────────────────
@@ -697,7 +938,8 @@
     clearBtn.addEventListener('click', function () {
       if (!confirm('確定清除本機所有個人資料？（護照號、保單號等均會刪除，無法復原）')) return;
       App.privateData.clear();
-      _renderPrivateSection();
+      _renderPrivateSection();   // Task21 呼叫點 1（clearBtn）
+      _renderLodgingBlock();
     });
   }
 
@@ -752,7 +994,8 @@
       } else {
         errMsg.hidden = true;
         // 匯入成功：重繪本機資料段
-        _renderPrivateSection();
+        _renderPrivateSection();   // Task21 呼叫點 2（confirmBtn，覆蓋首次匯入＋重新匯入）
+        _renderLodgingBlock();
       }
     });
 
@@ -779,7 +1022,8 @@
     _privateSectionEl.className = 'trip-private-section';
     sec.appendChild(_privateSectionEl);
 
-    _renderPrivateSection();
+    _renderPrivateSection();   // Task21 呼叫點 3（init 首繪）
+    _renderLodgingBlock();
 
     return sec;
   }
