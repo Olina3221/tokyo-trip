@@ -17,7 +17,7 @@
  *   #tab-shopping
  *     .shopping-header          (flex-shrink:0)
  *       .shopping-rate          匯率 + 圖例
- *       .shopping-summary       已買 n/22
+ *       .shopping-summary       已買 n/20
  *     .shopping-list            (flex:1, overflow-y:auto)
  *       .shopping-group × 2
  *         .shopping-group-title
@@ -88,6 +88,18 @@
     return total;
   }
 
+  // 只計算現有品項中被勾選的數量；localStorage 殘留的孤兒 id（如 g07/g10）安全忽略
+  function _validCheckedCount() {
+    if (!window.SHOPPING || !window.SHOPPING.categories) return 0;
+    var count = 0;
+    window.SHOPPING.categories.forEach(function (cat) {
+      (cat.items || []).forEach(function (item) {
+        if (_checkedSet.has(item.id)) count++;
+      });
+    });
+    return count;
+  }
+
   function _catCheckedCount(catId) {
     var count = 0;
     var cat = (window.SHOPPING.categories || []).find(function (c) { return c.id === catId; });
@@ -99,10 +111,10 @@
   }
 
   function _updateCounts() {
-    // 更新頁首總計
+    // 更新頁首總計（用 _validCheckedCount 而非 _checkedSet.size，排除孤兒 id 影響）
     if (_summaryEl) {
       var total = _totalItems();
-      var checked = _checkedSet.size;
+      var checked = _validCheckedCount();
       _summaryEl.textContent = '已買 ' + checked + '/' + total;
     }
     // 更新各群組標題計數

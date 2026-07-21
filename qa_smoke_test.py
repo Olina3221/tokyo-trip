@@ -347,20 +347,24 @@ else:
     else:
         fail('T23-B3：藥妝 id 缺失', str(missing_drug))
 
-    # T23-B4：伴手禮 g01–g10（10 筆）
-    gift_ids = [f'"g{str(i).zfill(2)}"' for i in range(1, 11)]
-    missing_gift = [g for g in gift_ids if g not in shopping_js]
-    if not missing_gift:
-        ok('T23-B4：伴手禮 g01–g10 全部存在（10 筆）')
+    # T23-B4：伴手禮 8 筆（g07 東京香蕉、g10 白色戀人已於 v24 移除；id 不重編）
+    gift_ids_expected = ['"g01"', '"g02"', '"g03"', '"g04"', '"g05"', '"g06"', '"g08"', '"g09"']
+    gift_ids_removed  = ['"g07"', '"g10"']
+    missing_gift = [g for g in gift_ids_expected if g not in shopping_js]
+    still_present = [g for g in gift_ids_removed if g in shopping_js]
+    if not missing_gift and not still_present:
+        ok('T23-B4：伴手禮 g01-g06/g08/g09 存在（8 筆），g07/g10 已正確移除')
+    elif still_present:
+        fail('T23-B4：g07/g10 應已移除但仍存在', str(still_present))
     else:
         fail('T23-B4：伴手禮 id 缺失', str(missing_gift))
 
-    # T23-B5：star: true 恰 8 個（藥妝 4 + 伴手禮 4）
+    # T23-B5：star: true 恰 6 個（藥妝 4 + 伴手禮 2；g07/g10 移除後 star 各少一）
     star_count = shopping_js.count('star: true')
-    if star_count == 8:
-        ok(f'T23-B5：star: true 恰 {star_count} 個（藥妝 4 + 伴手禮 4）')
+    if star_count == 6:
+        ok(f'T23-B5：star: true 恰 {star_count} 個（藥妝 4 + 伴手禮 2）')
     else:
-        fail('T23-B5：star: true 數量異常', f'預期 8，實際 {star_count}')
+        fail('T23-B5：star: true 數量異常', f'預期 6，實際 {star_count}')
 
     # T23-B6：id 無重複
     all_ids = re.findall(r'id:\s*"([dg]\d+)"', shopping_js)

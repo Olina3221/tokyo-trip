@@ -1,7 +1,8 @@
 // js/shoppingdata.js — 購物清單靜態資料（Task23 新增）
 // 公開商品資訊，無個資，可公開部署至 GitHub Pages
 // id 一經發佈不得改（改＝使用者勾選狀態失配）
-// 隱私確認（[實測] 2026-07-21）：全 22 筆均為公開商品資訊，無姓名/電話/證件/訂位號
+// 隱私確認（[實測] 2026-07-21）：全 20 筆均為公開商品資訊，無姓名/電話/證件/訂位號
+// v24 移除：g07 東京香蕉 TOKYO BANANA、g10 白色戀人（id 不重編，localStorage 勾選錨不失效）
 
 window.SHOPPING = {
   rateNote: "1¥ ≈ NT$0.18",
@@ -201,17 +202,6 @@ window.SHOPPING = {
           notes: "效期短，最後一天才買；先確認是否還有販售"
         },
         {
-          id: "g07",
-          star: true,
-          name: "東京香蕉 TOKYO BANANA",
-          desc: "海綿蛋糕包覆香蕉奶油餡，輕甜不膩、口感鬆軟；最具代表性的東京限定甜點",
-          where: "成田機場、東京車站",
-          jpPrice: "¥1,080/8入",
-          ntPrice: "約194",
-          shelfLife: "5天",
-          notes: "效期5天，最後一天在機場買"
-        },
-        {
           id: "g08",
           star: true,
           name: "Press Butter Sand 奶油焦糖夾心餅",
@@ -232,17 +222,6 @@ window.SHOPPING = {
           ntPrice: "約176",
           shelfLife: "30天",
           notes: "機場有賣，最後集中採購"
-        },
-        {
-          id: "g10",
-          star: true,
-          name: "白色戀人（北海道產）",
-          desc: "白巧克力夾心薄脆餅，口感細緻甜而不膩；注意：這是北海道名產，不是東京限定",
-          where: "成田機場免稅店",
-          jpPrice: "¥1,800/18片",
-          ntPrice: "約324",
-          shelfLife: "6個月",
-          notes: "機場免稅最便宜；買給特別重要的人"
         }
       ]
     }
