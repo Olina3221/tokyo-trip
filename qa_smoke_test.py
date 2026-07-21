@@ -254,6 +254,55 @@ if privacy_clean:
     ok('隱私掃描：JS / spec / api.md 無可疑真實密碼或電話')
 
 # ────────────────────────────────────────────────────────────────
+# Task22：Day 2（2026-07-22）items 驗收
+# ────────────────────────────────────────────────────────────────
+print('\n[Task22：Day 2 items 驗收]')
+
+tripdata_js = read('js/tripdata.js')
+
+# 切出 Day 2 items 區段：isoDate "2026-07-22" 到下一個 isoDate 之前
+m_day2 = re.search(
+    r'isoDate:\s*"2026-07-22".*?(?=isoDate:\s*"2026-07-2[3-9]")',
+    tripdata_js,
+    re.DOTALL
+)
+
+if not m_day2:
+    fail('Task22：找不到 Day 2（2026-07-22）區段')
+else:
+    day2_seg = m_day2.group(0)
+
+    # T22-1：items 筆數 = 11（time: 欄位計數）
+    item_count = len(re.findall(r'time:\s*"', day2_seg))
+    if item_count == 11:
+        ok(f'T22-1：Day 2 items 筆數 = {item_count}')
+    else:
+        fail('T22-1：Day 2 items 筆數不符', f'預期 11，實際 {item_count}')
+
+    # T22-2：禁字串 grep=0（僅 Day 2 段）
+    banned = ['分頭', '合羽橋', '宇奈とと', '二選一', '11:10']
+    for word in banned:
+        if word in day2_seg:
+            fail(f'T22-2：Day 2 段含禁字串「{word}」')
+        else:
+            ok(f'T22-2：禁字串「{word}」在 Day 2 段 grep=0')
+
+    # T22-3：「Skytree Shuttle」在 Day 2 段恰出現 1 次（平日停駛警語形式）
+    shuttle_count = day2_seg.count('Skytree Shuttle')
+    if shuttle_count == 1:
+        ok(f'T22-3：「Skytree Shuttle」在 Day 2 段恰 1 次（警語形式）')
+    else:
+        fail('T22-3：「Skytree Shuttle」在 Day 2 段出現次數異常', f'預期 1，實際 {shuttle_count}')
+
+    # T22-4：時間軸單調遞增（逐筆比對）
+    times = re.findall(r'time:\s*"(\d{2}:\d{2})"', day2_seg)
+    monotone = all(times[i] < times[i+1] for i in range(len(times)-1))
+    if monotone:
+        ok(f'T22-4：時間軸單調遞增（{" → ".join(times)}）')
+    else:
+        fail('T22-4：時間軸非單調遞增', str(times))
+
+# ────────────────────────────────────────────────────────────────
 # 結果彙總
 # ────────────────────────────────────────────────────────────────
 print('\n' + '='*60)
