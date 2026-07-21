@@ -15,7 +15,7 @@
  */
 
 // ─── 版本與快取清單（全檔唯一，改版只動這兩個常數）────────
-var CACHE_VERSION = 'v22';
+var CACHE_VERSION = 'v23';
 var CACHE_NAME = 'tokyo-trip-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -70,6 +70,9 @@ var PRECACHE_URLS = [
   './js/map-tab.js',
   // Task18（A2 SOP）：自訂常用語儲存模組（載入順序 bigtext.js < my-phrases.js < phrases-tab.js）
   './js/my-phrases.js',
+  // Task23（A2 SOP）：購物頁籤資料與邏輯模組（載入順序 shoppingdata.js → shopping-tab.js，在 mapdata.js/map-tab.js 之後）
+  './js/shoppingdata.js',
+  './js/shopping-tab.js',
 ];
 
 // ─── install：逐檔預快取，單檔失敗不炸整個 install（A4）────

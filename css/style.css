@@ -3303,3 +3303,255 @@ body {
 .phrases-restore-btn:active {
   opacity: 0.6;
 }
+
+
+/* ── Task23 購物分頁 ─────────────────────────────────────────────
+   字級全部硬編碼 px（禁 --fs-*，授權範圍現況僅 .trip-*）
+   淺色主題全域變數（--c-*）可用；禁 z-index ≥100
+   F3：本區塊必須以自己的注解頭開場，否則 Task21 type-scale 判準誤紅
+   F4：頁首列 flex-shrink:0 ＋ 清單唯一捲動區（Task11 U2 紀律）
+   ── */
+
+/* ── 頁首列（固定不捲動）────────────────────────────────────────── */
+.shopping-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--c-divider);
+  background-color: var(--c-bg);
+  gap: 8px;
+}
+
+.shopping-rate {
+  font-size: 13px;   /* hardcode，禁 --fs-* */
+  color: var(--c-text-muted);
+  flex: 1;
+}
+
+.shopping-summary {
+  font-size: 13px;   /* hardcode，禁 --fs-* */
+  font-weight: 600;
+  color: var(--c-accent-text);
+  white-space: nowrap;
+}
+
+/* ── 捲動清單區（唯一捲動容器）────────────────────────────────── */
+.shopping-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 16px;
+}
+
+/* ── 分類群組 ──────────────────────────────────────────────────── */
+.shopping-group {
+  margin-bottom: 8px;
+}
+
+.shopping-group-title {
+  padding: 10px 16px 6px;
+  font-size: 14px;   /* hardcode，禁 --fs-* */
+  font-weight: 700;
+  color: var(--c-accent-text);
+  background-color: var(--c-bg);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--c-divider);
+}
+
+/* ── 卡片 ──────────────────────────────────────────────────────── */
+.shopping-card {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--c-divider);
+  background-color: var(--c-bg);
+  transition: opacity 0.15s ease;
+}
+
+/* 已買態：降 opacity，不重排不移動位置 */
+.shopping-card.is-checked {
+  opacity: 0.45;
+}
+
+/* ── 左：勾選區（觸控目標 ≥44px）────────────────────────────────── */
+.shopping-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 52px;
+  min-height: 56px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 自訂 checkbox 視覺（不依賴原生 input 樣式跨瀏覽器差異）*/
+.shopping-checkbox-visual {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--c-divider);
+  border-radius: 6px;
+  background-color: var(--c-bg);
+  position: relative;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.shopping-checkbox-visual.checked {
+  background-color: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+/* 打勾符號（CSS 偽元素）*/
+.shopping-checkbox-visual.checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+}
+
+/* ── 右：內容區（觸控目標 ≥44px）────────────────────────────────── */
+.shopping-content {
+  flex: 1;
+  min-height: 56px;
+  padding: 10px 12px 10px 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* 品名行（★ + 品名）*/
+.shopping-name {
+  font-size: 15px;   /* hardcode，禁 --fs-* */
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.3;
+}
+
+.shopping-name.has-star {
+  color: var(--c-accent-text);
+}
+
+/* 價格行 */
+.shopping-price {
+  font-size: 13px;   /* hardcode，禁 --fs-* */
+  color: var(--c-text-muted);
+  line-height: 1.3;
+}
+
+/* 展開 chevron */
+.shopping-chevron {
+  position: absolute;
+  right: 14px;
+  font-size: 11px;   /* hardcode，禁 --fs-* */
+  color: var(--c-text-muted);
+  pointer-events: none;
+}
+
+/* content 要設 position:relative 讓 chevron absolute 生效 */
+.shopping-content {
+  position: relative;
+  padding-right: 28px;
+}
+
+/* ── 展開詳情（有值才渲染列）─────────────────────────────────────── */
+.shopping-detail {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--c-divider);
+}
+
+.shopping-detail-row {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  align-items: flex-start;
+}
+
+.shopping-detail-label {
+  font-size: 12px;   /* hardcode，禁 --fs-* */
+  color: var(--c-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+.shopping-detail-value {
+  font-size: 13px;   /* hardcode，禁 --fs-* */
+  color: var(--c-text);
+  line-height: 1.45;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* ── 保存期限分級強調（對伴手禮很重要）────────────────────────────────
+   分級由 shopping-tab.js _shelfTier() 解析天數後加 class：
+     ≤10天 → .shopping-detail-row--shelf-critical（最強：紅色＋粗體＋⚠標）
+     11–30天 → .shopping-detail-row--shelf-warning（中等：琥珀橙＋semibold）
+     >30天 or 無法解析 → 無 class（樸素）
+   禁 ID 選擇器、禁 !important（repo 紀律）；僅用 class 選擇器（specificity 10+10）   ── */
+
+/* 極短效期：≤10天（東京香蕉 5天、楓糖長崎蛋糕 10天）*/
+.shopping-detail-row--shelf-critical .shopping-detail-label {
+  color: #C63A3A;   /* 深紅，淺底 AA（Task11 A8 同值）*/
+  font-weight: 700;
+}
+.shopping-detail-row--shelf-critical .shopping-detail-value {
+  color: #C63A3A;
+  font-weight: 700;
+}
+
+/* 短效期：11–30天（MAPLE BUTTER BOY 30天、Press Butter Sand 30天、牛奶起司 30天）*/
+.shopping-detail-row--shelf-warning .shopping-detail-label {
+  color: #9A5800;   /* 深琥珀橙，淺底 AA（4.5:1+）*/
+  font-weight: 600;
+}
+.shopping-detail-row--shelf-warning .shopping-detail-value {
+  color: #9A5800;
+  font-weight: 600;
+}
+
+/* ── 清除全部勾選鈕 ────────────────────────────────────────────── */
+.shopping-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 12px;
+  padding: 0 16px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--c-divider);
+  font-size: 14px;   /* hardcode，禁 --fs-* */
+  color: #C63A3A;    /* 深紅，淺底可辨識（Task11 A8 同值）*/
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.shopping-clear-btn:active {
+  opacity: 0.6;
+}
+
+/* ── 缺載失敗文案 ──────────────────────────────────────────────── */
+.shopping-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: 15px;   /* hardcode，禁 --fs-* */
+  line-height: 1.5;
+}

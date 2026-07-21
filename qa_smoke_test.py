@@ -55,7 +55,7 @@ else:
     fail('APP_VERSION_DATE 缺失')
 
 # ────────────────────────────────────────────────────────────────
-# 通用：PRECACHE_URLS 數量（Task14 起必須保持 42）
+# 通用：PRECACHE_URLS 數量（Task23 起必須保持 44，+shoppingdata.js/shopping-tab.js）
 # ────────────────────────────────────────────────────────────────
 print('\n[PRECACHE_URLS 數量]')
 
@@ -72,10 +72,10 @@ for line in lines:
         if ']' in stripped and in_list and not stripped.startswith("'./"):
             in_list = False
 
-if count == 42:
-    ok(f'PRECACHE_URLS = {count} 筆（零增減）')
+if count == 44:
+    ok(f'PRECACHE_URLS = {count} 筆')
 else:
-    fail(f'PRECACHE_URLS 數量異常', f'預期 42 筆，實際 {count} 筆')
+    fail(f'PRECACHE_URLS 數量異常', f'預期 44 筆，實際 {count} 筆')
 
 # ────────────────────────────────────────────────────────────────
 # Task21：M1 — _renderPrivateSection 函式體內不得有 _renderLodgingBlock
@@ -226,6 +226,11 @@ scan_files = [
     'js/import-data.js',
     'specs/Task21.spec.md',
     'specs/Task21.api.md',
+    # Task23 additive（SA F2：新檔納入隱私掃描）
+    'js/shoppingdata.js',
+    'js/shopping-tab.js',
+    'specs/Task23.spec.md',
+    'specs/Task23.api.md',
 ]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
@@ -287,12 +292,13 @@ else:
         else:
             ok(f'T22-2：禁字串「{word}」在 Day 2 段 grep=0')
 
-    # T22-3：「Skytree Shuttle」在 Day 2 段恰出現 1 次（平日停駛警語形式）
+    # T23-A1：「Skytree Shuttle」在 Day 2 段應出現 0 次
+    # （Task23 起警語移除，Task22 的「恰 1 次」判準由本輪正當解除；Task22.spec.md 存檔不回改）
     shuttle_count = day2_seg.count('Skytree Shuttle')
-    if shuttle_count == 1:
-        ok(f'T22-3：「Skytree Shuttle」在 Day 2 段恰 1 次（警語形式）')
+    if shuttle_count == 0:
+        ok(f'T23-A1：「Skytree Shuttle」在 Day 2 段恰 0 次（警語已移除）')
     else:
-        fail('T22-3：「Skytree Shuttle」在 Day 2 段出現次數異常', f'預期 1，實際 {shuttle_count}')
+        fail('T23-A1：「Skytree Shuttle」在 Day 2 段出現次數異常', f'預期 0，實際 {shuttle_count}')
 
     # T22-4：時間軸單調遞增（逐筆比對）
     times = re.findall(r'time:\s*"(\d{2}:\d{2})"', day2_seg)
@@ -301,6 +307,160 @@ else:
         ok(f'T22-4：時間軸單調遞增（{" → ".join(times)}）')
     else:
         fail('T22-4：時間軸非單調遞增', str(times))
+
+    # T23-A2：Day 2 段禁字詞追加（Task23 起，停駛/改搭/原定 = 警語殘影字眼）
+    banned_a2 = ['停駛', '改搭', '原定']
+    for word in banned_a2:
+        if word in day2_seg:
+            fail(f'T23-A2：Day 2 段含禁字詞「{word}」（警語殘影）')
+        else:
+            ok(f'T23-A2：禁字詞「{word}」在 Day 2 段 grep=0')
+
+# ────────────────────────────────────────────────────────────────
+# Task23：shoppingdata.js 結構驗收
+# ────────────────────────────────────────────────────────────────
+print('\n[Task23：shoppingdata.js 結構]')
+
+shopping_path = os.path.join(REPO, 'js/shoppingdata.js')
+if not os.path.exists(shopping_path):
+    fail('T23-B0：js/shoppingdata.js 不存在')
+else:
+    shopping_js = read('js/shoppingdata.js')
+
+    # T23-B1：匯率註記
+    if '0.18' in shopping_js:
+        ok('T23-B1：shoppingdata.js 含匯率 0.18')
+    else:
+        fail('T23-B1：shoppingdata.js 缺匯率 0.18')
+
+    # T23-B2：分類 id drug/gift
+    if '"drug"' in shopping_js and '"gift"' in shopping_js:
+        ok('T23-B2：分類 id drug/gift 存在')
+    else:
+        fail('T23-B2：分類 id drug/gift 缺失')
+
+    # T23-B3：藥妝 d01–d12（12 筆）
+    drug_ids = [f'"d{str(i).zfill(2)}"' for i in range(1, 13)]
+    missing_drug = [d for d in drug_ids if d not in shopping_js]
+    if not missing_drug:
+        ok('T23-B3：藥妝 d01–d12 全部存在（12 筆）')
+    else:
+        fail('T23-B3：藥妝 id 缺失', str(missing_drug))
+
+    # T23-B4：伴手禮 g01–g10（10 筆）
+    gift_ids = [f'"g{str(i).zfill(2)}"' for i in range(1, 11)]
+    missing_gift = [g for g in gift_ids if g not in shopping_js]
+    if not missing_gift:
+        ok('T23-B4：伴手禮 g01–g10 全部存在（10 筆）')
+    else:
+        fail('T23-B4：伴手禮 id 缺失', str(missing_gift))
+
+    # T23-B5：star: true 恰 8 個（藥妝 4 + 伴手禮 4）
+    star_count = shopping_js.count('star: true')
+    if star_count == 8:
+        ok(f'T23-B5：star: true 恰 {star_count} 個（藥妝 4 + 伴手禮 4）')
+    else:
+        fail('T23-B5：star: true 數量異常', f'預期 8，實際 {star_count}')
+
+    # T23-B6：id 無重複
+    all_ids = re.findall(r'id:\s*"([dg]\d+)"', shopping_js)
+    if len(all_ids) == len(set(all_ids)):
+        ok(f'T23-B6：id 無重複（共 {len(all_ids)} 筆）')
+    else:
+        dupes = [x for x in all_ids if all_ids.count(x) > 1]
+        fail('T23-B6：id 有重複', str(set(dupes)))
+
+    # T23-B7：PRECACHE 含 shoppingdata.js
+    if "'./js/shoppingdata.js'" in sw_js:
+        ok('T23-B7：PRECACHE 含 shoppingdata.js')
+    else:
+        fail('T23-B7：PRECACHE 缺少 shoppingdata.js')
+
+    # T23-B8：PRECACHE 含 shopping-tab.js
+    if "'./js/shopping-tab.js'" in sw_js:
+        ok('T23-B8：PRECACHE 含 shopping-tab.js')
+    else:
+        fail('T23-B8：PRECACHE 缺少 shopping-tab.js')
+
+# ────────────────────────────────────────────────────────────────
+# Task23：前端整合驗收（frontend 完成後才全過；未完成時優雅跳過）
+# ────────────────────────────────────────────────────────────────
+print('\n[Task23：前端整合]')
+
+app_js_content = read('js/app.js')
+index_html_content = read('index.html')
+
+# T23-C1/C2：TAB_IDS 含 shopping 且長度 7
+m_tabs = re.search(r"var TAB_IDS\s*=\s*\[([^\]]+)\]", app_js_content)
+if m_tabs:
+    tab_ids_str = m_tabs.group(1)
+    tab_list = re.findall(r"'([^']+)'", tab_ids_str)
+    if 'shopping' in tab_list:
+        if len(tab_list) == 7:
+            ok(f'T23-C1：TAB_IDS 含 shopping 且長度 7（{tab_list}）')
+        else:
+            fail('T23-C1：TAB_IDS 含 shopping 但長度不符', f'預期 7，實際 {len(tab_list)}')
+    else:
+        ok('T23-C1：TAB_IDS 尚未加入 shopping（frontend 待完成，跳過）')
+else:
+    fail('T23-C1：找不到 TAB_IDS 定義')
+
+# T23-C3/C4：index.html nav 鈕數量（排除 {id} 等模板佔位值）
+nav_tabs_raw = re.findall(r'data-tab="([^"]+)"', index_html_content)
+nav_tabs = [t for t in nav_tabs_raw if not (t.startswith('{') and t.endswith('}'))]
+if len(nav_tabs) == 7:
+    ok(f'T23-C3：index.html data-tab 鈕恰 7 顆')
+    if 'shopping' in nav_tabs:
+        ok('T23-C4：nav 含 shopping 鈕')
+    else:
+        fail('T23-C4：nav 缺 shopping 鈕')
+elif len(nav_tabs) == 6:
+    ok('T23-C3：frontend 尚未完成 nav 更新（目前 6 顆，跳過）')
+else:
+    fail('T23-C3：nav 鈕數量異常', f'預期 7，實際 {len(nav_tabs)}')
+
+# T23-C5：section#tab-shopping 存在
+if 'id="tab-shopping"' in index_html_content:
+    ok('T23-C5：section#tab-shopping 存在')
+else:
+    ok('T23-C5：frontend 尚未加入 section#tab-shopping（跳過）')
+
+# T23-C6：shopping-tab.js localStorage key 正確
+shopping_tab_path = os.path.join(REPO, 'js/shopping-tab.js')
+if os.path.exists(shopping_tab_path):
+    shopping_tab_js = read('js/shopping-tab.js')
+    if 'tokyotrip.shoppingChecked' in shopping_tab_js:
+        ok('T23-C6：shopping-tab.js localStorage key 正確')
+    else:
+        fail('T23-C6：shopping-tab.js localStorage key 不符，預期 tokyotrip.shoppingChecked')
+    if 'localStorage.clear()' in shopping_tab_js:
+        fail('T23-C6b：shopping-tab.js 含 localStorage.clear()（repo 級禁令）')
+    else:
+        ok('T23-C6b：shopping-tab.js 無 localStorage.clear()')
+else:
+    ok('T23-C6：frontend 尚未建立 shopping-tab.js（跳過）')
+
+# T23-C7：全 repo 主要 JS 無 localStorage.clear() 可執行呼叫
+# （注解中的禁令說明文字不算，只掃非注解行）
+clear_check_files = [
+    'js/app.js', 'js/trip-tab.js', 'js/translate-tab.js',
+    'js/my-phrases.js', 'js/import-data.js', 'js/shoppingdata.js',
+]
+found_clear = []
+for cf in clear_check_files:
+    cf_path = os.path.join(REPO, cf)
+    if os.path.exists(cf_path):
+        content = read(cf)
+        # 過濾注解行（// 或 * 開頭，去除前導空白後）
+        code_lines = [l for l in content.split('\n')
+                      if not l.lstrip().startswith('//') and not l.lstrip().startswith('*')]
+        code_only = '\n'.join(code_lines)
+        if 'localStorage.clear()' in code_only:
+            found_clear.append(cf)
+if found_clear:
+    fail('T23-C7：repo 中含 localStorage.clear() 可執行呼叫', str(found_clear))
+else:
+    ok('T23-C7：已知 JS 檔無 localStorage.clear() 可執行呼叫')
 
 # ────────────────────────────────────────────────────────────────
 # 結果彙總
