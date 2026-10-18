@@ -15,7 +15,7 @@ DOM 結構（trip-tab.js L574–594、契約見 `Task3.api.md`）：
 - `.trip-private-row-label` 改 `width: auto; min-width: 72px`（短標籤仍佔 72px → 各小節標籤欄對齊觀感不變）＋ **`max-width: 100%`（必要，見 §2 F2）**，`flex-shrink: 0` 保留；
 - `.trip-private-row-value` 維持 `flex: 1` 並加一個 `min-width`（或 flex-basis）門檻：剩餘空間 ≥ 門檻 → 同列橫排；長標籤吃掉空間後剩餘 < 門檻 → value 整體換行到下一行、flex:1 撐滿全寬 = 堆疊。
 
-門檻值試算（390px 視口、row 左右 padding 16px×2、gap 14px）：內容寬 358px；短標籤（label 72px）時 value 可用 272px。門檻取 **180–220px 區間**皆可同時滿足兩判準——短標籤列（272 ≥ 門檻）恆橫排；「MAPLEHOUSE 淺草 訂單編號」級長標籤（--fs-sm 15px × 約 13 字 ≈ 190px+）剩餘空間必 < 門檻 → 堆疊。**具體數值由 frontend 定，QA 只驗兩判準（短橫排不變／長堆疊零重疊），不驗數值本身。**
+門檻值試算（390px 視口、row 左右 padding 16px×2、gap 14px）：內容寬 358px；短標籤（label 72px）時 value 可用 272px。門檻取 **180–220px 區間**皆可同時滿足兩判準——短標籤列（272 ≥ 門檻）恆橫排；「舊住宿 訂單編號」級長標籤（--fs-sm 15px × 約 13 字 ≈ 190px+）剩餘空間必 < 門檻 → 堆疊。**具體數值由 frontend 定，QA 只驗兩判準（短橫排不變／長堆疊零重疊），不驗數值本身。**
 
 ## 1. 受影響的既有功能
 
@@ -47,7 +47,7 @@ DOM 結構（trip-tab.js L574–594、契約見 `Task3.api.md`）：
 
 - [ ] **診斷閘**：diff 僅 `css/style.css`（限 `.trip-private-*`）＋`sw.js`＋`js/version.js`；`js/trip-tab.js`、`index.html` 及其他全部檔案零 diff（spec 判準 1）。
 - [ ] 版號閘：`CACHE_VERSION === APP_VERSION === 'v20'` 逐字元相等；`APP_VERSION_DATE` 值＝bump 當日（07/13，該行可能零 diff 屬合法，見 §3）；PRECACHE 42 筆零增減（spec 判準 2）。
-- [ ] 長標籤堆疊：注入含 bookings 長標籤（「MAPLEHOUSE 淺草 訂單編號」「MAPLEHOUSE 房型編號」）的測試資料（走 `App.privateData.save`），iPhone 視口（390px）驗 label/value boundingBox 不相交、無水平捲動；**加驗極長 label（>整行寬字串）自身換行不溢出**（F2）。測畢清除（spec 判準 3＋邊界條件）。
+- [ ] 長標籤堆疊：注入含 bookings 長標籤（「舊住宿 訂單編號」「舊住宿 房型編號」）的測試資料（走 `App.privateData.save`），iPhone 視口（390px）驗 label/value boundingBox 不相交、無水平捲動；**加驗極長 label（>整行寬字串）自身換行不溢出**（F2）。測畢清除（spec 判準 3＋邊界條件）。
 - [ ] 混合小節：同一小節同時含長短標籤時兩模式並存、互不影響（spec 邊界條件）。
 - [ ] 短標籤觀感不變：護照/保險/緊急聯絡人列單行橫排、各小節標籤欄 72px 對齊如舊（spec 判準 4）。
 - [ ] tel 連結：橫排（保險緊急電話）與堆疊（長標籤聯絡人情境，測試資料造一筆長 label 的 contact）兩情境皆可點、高度 ≥44px（spec 判準 5＋邊界條件）。

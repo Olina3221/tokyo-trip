@@ -25,7 +25,7 @@ PM 要求特別驗證：detail 明顯變長且多行，Task10 渲染路徑是否
 
 1. **渲染路徑**（trip-tab.js L210–216）`[實測]`：`detailEl.innerHTML = escHtml(item.detail).replace(/\n/g, '<br>')`——detail 直接完整展開、非互動、無 `hidden`、無截斷/省略邏輯。
 2. **CSS**（style.css L753–761）`[實測]`：`.trip-item-detail` 在 grid 第 2 欄第 2 列，**無 max-height、無 overflow 裁切、無 line-clamp**；grid row 高度自動生長，6 行 detail 只是卡片變高，垂直捲動由既有容器吸收。`white-space: pre-wrap` 為保底（\n 已先轉 `<br>`，字串中不再有殘留 \n，不會雙重換行）。
-3. **水平溢出**：新 detail 無長串無空白 ASCII（最長 token 如「Solamachi」「MAPLEHOUSE」遠短於欄寬），中文自然逐字斷行；不需要 Task21 的 `overflow-wrap:anywhere` 處置。
+3. **水平溢出**：新 detail 無長串無空白 ASCII（最長 token 如「Solamachi」「7 月舊住宿」遠短於欄寬），中文自然逐字斷行；不需要 Task21 的 `overflow-wrap:anywhere` 處置。
 4. **特殊字元**：`escHtml` 只轉義 `& < > "`（L1116–1120）`[實測]`——`⚠`／`💤`／`①–④`／`¥`／`→` 全部原樣通過，經 textNode 等價路徑渲染，唯一前提＝檔案維持 UTF-8（spec 已列邊界條件）。
 5. **無新 class、無樣式變更、index.html 零動** → frontend 階段無事可做，跳過成立。
 

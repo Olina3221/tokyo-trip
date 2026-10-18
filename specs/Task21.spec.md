@@ -9,7 +9,7 @@
 
 ### 功能描述
 
-在「飯店」藥丸底下、現有 MAPLEHOUSE 卡片下方，新增一個「民宿入住資訊」區塊，顯示自助入住須知、門鎖密碼、四層 WiFi、住宿須知與房東電話，資料一律來自本機層匯入碼（`tokyotrip.privateData` 的新 key `lodging`），**不進 `js/tripdata.js`**。目的是讓同行家人各自在自己手機的 APP 上就能讀到入住須知與密碼，不必問 Olina。
+在「飯店」藥丸底下、現有 7 月舊住宿 卡片下方，新增一個「民宿入住資訊」區塊，顯示自助入住須知、門鎖密碼、四層 WiFi、住宿須知與房東電話，資料一律來自本機層匯入碼（`tokyotrip.privateData` 的新 key `lodging`），**不進 `js/tripdata.js`**。目的是讓同行家人各自在自己手機的 APP 上就能讀到入住須知與密碼，不必問 Olina。
 
 ---
 
@@ -20,12 +20,12 @@
 **已完成（現況）**
 - Task3 建立本機層機制：匯入碼格式 `TT1.<base64(UTF-8 JSON)>`（權威 `Task3.api.md` §2）、`App.privateData`（get/getRawCode/save/clear/isAvailable，`js/import-data.js`）、既有四個 top-level key `passports` / `insurance` / `bookings` / `contacts`。目前 `App.privateData` 的**唯一消費者是「重要資料」藥丸底下的 `.trip-private-section`**。
 - Task20 修過 `.trip-private-row` 的「標籤寬度是資料驅動」重疊 bug，現為自適應雙模式排版（SYSTEM_MAP 第 103 行）。
-- 公開層 `window.TRIP.hotels[0]` 已有 MAPLEHOUSE 淺草的 `name` / `checkin` / `checkout` / `address_ja` / `address_zh` / `tel` / `note`，飯店卡已有「複製地址 / 開地圖 / 大字給司機看」三顆鈕。
+- 公開層 `window.TRIP.hotels[0]` 已有 7 月舊住宿的 `name` / `checkin` / `checkout` / `address_ja` / `address_zh` / `tel` / `note`，飯店卡已有「複製地址 / 開地圖 / 大字給司機看」三顆鈕。
 
 **已拍板（Olina）**
 1. **資料分層：本輪全部內容走本機層匯入碼，一律不進 `js/tripdata.js`。**
    理由：內容含一樓入口門鎖密碼、房間門鎖密碼、四個樓層 WiFi 密碼、房東私人電話，而 `tripdata.js` 會公開部署到 GitHub Pages，違反 repo 級隱私硬約束（SYSTEM_MAP 第 83 行：**個資真值在任何 tracked 檔＝FAIL**）。連入住／退房時間、垃圾分類等純須知也一併放本機層——刻意不拆成公開／私密兩塊，避免家人站在門口還要跳頁找密碼。
-2. **顯示位置：飯店藥丸底下、MAPLEHOUSE 卡片下方**，不是「重要資料」藥丸。
+2. **顯示位置：飯店藥丸底下、7 月舊住宿 卡片下方**，不是「重要資料」藥丸。
    → 這是本輪最大的架構變化：`buildHotelSection()` 開始消費 `App.privateData.get()`。在此之前 `App.privateData` 只被「重要資料」區塊消費（Task3 設計，SYSTEM_MAP 第 89 行「trip 分頁專用、非跨 Task 共用元件」的語意本輪擴大為「trip 分頁內兩個區塊共用」——**由本 spec 正當解除該行的單一消費者假設**，SA 須同步更新 SYSTEM_MAP）。
 3. **既有四個 key 的 schema 零變更**（硬約束）。本輪只 additive 新增第五個 top-level key。
 
@@ -123,7 +123,7 @@
 
 定案（`[推斷]`，最晚拍板點＝backend 開工前）：
 
-- **公開層零變更**：`tripdata.js` 的 `address_ja` / `address_zh` 原樣保留，MAPLEHOUSE 卡片渲染零 diff。日文地址仍是「給司機看」的正解，本輪不搬家、不重複。
+- **公開層零變更**：`tripdata.js` 的 `address_ja` / `address_zh` 原樣保留，7 月舊住宿 卡片渲染零 diff。日文地址仍是「給司機看」的正解，本輪不搬家、不重複。
 - **私密層的 `addressZh` 是選填備援，預設不建議提供**：上方卡片已顯示中文地址，重複顯示只會讓同一張畫面出現兩份中文地址、看起來像資料打架。
 - **渲染規則（機械可驗）**：`lodging.addressZh` 有值時才渲染該行；且渲染前與公開層 `TRIP.hotels[0].address_zh` 做**去除前後空白後的字串比對**，相等則略過不渲染（避免完全重複）。取不到公開層資料時（TRIP 缺載）不做比對、直接渲染。
 - **`lodging.addressEn` 有值必渲染**：這是本輪的地址增量價值。
@@ -135,7 +135,7 @@
 
 ### B1. 位置與容器
 
-- 區塊掛在 `#trip-sec-hotel` 內、**所有 `.trip-hotel-card` 之後**（現況只有一張 MAPLEHOUSE 卡）。
+- 區塊掛在 `#trip-sec-hotel` 內、**所有 `.trip-hotel-card` 之後**（現況只有一張 7 月舊住宿 卡）。
 - `buildHotelSection()` **恆建立**一個容器 `div.trip-lodging`（即使當下無資料也建，作為可重繪的空殼），backend 保留其參照供 `_renderLodgingBlock()` 使用。
 - `_renderLodgingBlock()` 每次清空容器整塊重建（天然冪等），**禁做局部 patch**。
 
@@ -220,7 +220,7 @@ frontend 必守：
 |---|----------|----------|-----------|
 | C1 | key 命名 `lodging`、物件而非陣列 | `[推斷]` | backend 開工前 |
 | C2 | 全部走本機層、不進 tripdata.js | `[實測]`（隱私硬約束已由 SYSTEM_MAP 第 83 行與歷次 QA 三段式掃描確立；Olina 已拍板） | 已定案 |
-| C3 | 顯示在飯店藥丸、MAPLEHOUSE 卡下方 | `[實測]`（Olina 已拍板） | 已定案 |
+| C3 | 顯示在飯店藥丸、7 月舊住宿 卡下方 | `[實測]`（Olina 已拍板） | 已定案 |
 | C4 | `buildHotelSection` 消費 `App.privateData` | `[實測]`（程式碼已核實：`buildHotelSection` 位於 `trip-tab.js` L359，`App.privateData` 於同檔 L524/532 已被使用，同模組內可直接呼叫） | 已定案 |
 | C5 | B2 四個重繪時機（含匯入後刷新） | `[實測]`（程式碼已核實：`buildHotelSection` 於 `init()` L846 只呼叫一次，不重繪則匯入後不更新） | 已定案 |
 | C6 | 密碼類欄位加一鍵複製 | `[推斷]`（`copyToClipboard`/`showTip` 已存在於 trip-tab.js 並在飯店卡運作中；「iPhone 手打密碼很痛苦」為使用情境推斷，未經真機實測） | frontend 開工前 |
@@ -286,7 +286,7 @@ frontend 必守：
 4. 只含舊四 key 的匯入碼（無 `lodging`）→ 重要資料正常、民宿區塊顯示 B6 提示、零 console error。
 
 ### G2. 渲染正確性（用假值測試碼）
-5. 完整 `lodging` 假值匯入 → 八個小節依 B3 順序全部渲染，位置在 MAPLEHOUSE 卡片**下方**、在飯店藥丸內。
+5. 完整 `lodging` 假值匯入 → 八個小節依 B3 順序全部渲染，位置在 7 月舊住宿 卡片**下方**、在飯店藥丸內。
 6. WiFi 四組全部渲染；改成 2 組與 6 組的測試碼各測一次，組數正確且不寫死。
 7. `notes` 五條全部渲染為條列。
 8. `hostContacts` 兩筆各自顯示姓名與可點的 `tel:` 連結。

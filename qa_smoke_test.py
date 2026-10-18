@@ -231,6 +231,9 @@ scan_files = [
     'js/shopping-tab.js',
     'specs/Task23.spec.md',
     'specs/Task23.api.md',
+    # Task25 additive（SA B3）
+    'specs/Task25.spec.md',
+    'specs/Task25.impact.md',
 ]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
@@ -259,62 +262,161 @@ if privacy_clean:
     ok('隱私掃描：JS / spec / api.md 無可疑真實密碼或電話')
 
 # ────────────────────────────────────────────────────────────────
-# Task22：Day 2（2026-07-22）items 驗收
+# Task25：10/22～10/25 新行程覆蓋（Task22 Day 2 區塊含 T23-A2 已整段退場——綁 7/22 內容，SA B1 裁定）
 # ────────────────────────────────────────────────────────────────
-print('\n[Task22：Day 2 items 驗收]')
+print('\n[Task25：新行程覆蓋]')
+
+import subprocess
 
 tripdata_js = read('js/tripdata.js')
+mapdata_js = read('js/mapdata.js')
 
-# 切出 Day 2 items 區段：isoDate "2026-07-22" 到下一個 isoDate 之前
-m_day2 = re.search(
-    r'isoDate:\s*"2026-07-22".*?(?=isoDate:\s*"2026-07-2[3-9]")',
-    tripdata_js,
-    re.DOTALL
-)
-
-if not m_day2:
-    fail('Task22：找不到 Day 2（2026-07-22）區段')
+# TRIP 段 = window.TRIP = { 到 window.COUPONS 之前（SA B4）
+i_trip = tripdata_js.find('window.TRIP = {')
+i_coupons = tripdata_js.find('window.COUPONS')
+if i_trip < 0 or i_coupons < 0 or i_coupons < i_trip:
+    fail('T25：無法切出 TRIP 段（window.TRIP / window.COUPONS 定位失敗）')
+    trip_seg = ''
 else:
-    day2_seg = m_day2.group(0)
+    trip_seg = tripdata_js[i_trip:i_coupons]
 
-    # T22-1：items 筆數 = 11（time: 欄位計數）
-    item_count = len(re.findall(r'time:\s*"', day2_seg))
-    if item_count == 11:
-        ok(f'T22-1：Day 2 items 筆數 = {item_count}')
-    else:
-        fail('T22-1：Day 2 items 筆數不符', f'預期 11，實際 {item_count}')
+# T25-1：itinerary 恰 4 天，isoDate 依序 2026-10-22～10-25
+iso_dates = re.findall(r'isoDate:\s*"(\d{4}-\d{2}-\d{2})"', trip_seg)
+expected_iso = ['2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25']
+if iso_dates == expected_iso:
+    ok(f'T25-1：itinerary 恰 4 天（{" / ".join(iso_dates)}）')
+else:
+    fail('T25-1：itinerary isoDate 不符', f'預期 {expected_iso}，實際 {iso_dates}')
 
-    # T22-2：禁字串 grep=0（僅 Day 2 段）
-    banned = ['分頭', '合羽橋', '宇奈とと', '二選一', '11:10']
-    for word in banned:
-        if word in day2_seg:
-            fail(f'T22-2：Day 2 段含禁字串「{word}」')
+# T25-2：flights 欄位
+m_flights = re.search(r'flights:\s*\[(.*?)\n  \],', trip_seg, re.DOTALL)
+flight_blocks = re.findall(r'\{\s*label:.*?\n    \},', m_flights.group(1), re.DOTALL) if m_flights else []
+def fl_field(block, pat):
+    m = re.search(pat, block)
+    return m.group(1) if m else None
+if len(flight_blocks) != 2:
+    fail('T25-2：flights 筆數不符', f'預期 2，實際 {len(flight_blocks)}')
+else:
+    expect = [
+        ('去程', 'MM626', '2026/10/22（四）', ('台北桃園', 'T1', '10:50'), ('東京成田', 'T1', '15:20')),
+        ('回程', 'MM623', '2026/10/25（日）', ('東京成田', 'T1', '16:40'), ('台北桃園', 'T1', '20:00')),
+    ]
+    for blk, (lab, fno, date, frm, to) in zip(flight_blocks, expect):
+        got = (
+            fl_field(blk, r'label:\s*"([^"]*)"'),
+            fl_field(blk, r'airline:\s*"([^"]*)"'),
+            fl_field(blk, r'flightNo:\s*"([^"]*)"'),
+            fl_field(blk, r'date:\s*"([^"]*)"'),
+            re.search(r'from:\s*\{\s*airport:\s*"([^"]*)",\s*terminal:\s*"([^"]*)",\s*time:\s*"([^"]*)"', blk),
+            re.search(r'to:\s*\{\s*airport:\s*"([^"]*)",\s*terminal:\s*"([^"]*)",\s*time:\s*"([^"]*)"', blk),
+        )
+        problems = []
+        if got[0] != lab: problems.append(f'label={got[0]}')
+        if got[1] != '樂桃航空 Peach': problems.append(f'airline={got[1]}')
+        if got[2] != fno: problems.append(f'flightNo={got[2]}')
+        if got[3] != date: problems.append(f'date={got[3]}')
+        if not got[4] or got[4].groups() != frm: problems.append(f'from={got[4].groups() if got[4] else None}')
+        if not got[5] or got[5].groups() != to: problems.append(f'to={got[5].groups() if got[5] else None}')
+        if problems:
+            fail(f'T25-2：{lab} 航班欄位不符', '; '.join(problems))
         else:
-            ok(f'T22-2：禁字串「{word}」在 Day 2 段 grep=0')
-
-    # T23-A1：「Skytree Shuttle」在 Day 2 段應出現 0 次
-    # （Task23 起警語移除，Task22 的「恰 1 次」判準由本輪正當解除；Task22.spec.md 存檔不回改）
-    shuttle_count = day2_seg.count('Skytree Shuttle')
-    if shuttle_count == 0:
-        ok(f'T23-A1：「Skytree Shuttle」在 Day 2 段恰 0 次（警語已移除）')
+            ok(f'T25-2：{lab} {fno} {date} {frm[2]}→{to[2]}')
+for word in ['MM625', '16:55', '19:40']:
+    if word in trip_seg:
+        fail(f'T25-2：TRIP 段仍含舊班次字串「{word}」')
     else:
-        fail('T23-A1：「Skytree Shuttle」在 Day 2 段出現次數異常', f'預期 0，實際 {shuttle_count}')
+        ok(f'T25-2：TRIP 段無舊班次字串「{word}」')
 
-    # T22-4：時間軸單調遞增（逐筆比對）
-    times = re.findall(r'time:\s*"(\d{2}:\d{2})"', day2_seg)
-    monotone = all(times[i] < times[i+1] for i in range(len(times)-1))
-    if monotone:
-        ok(f'T22-4：時間軸單調遞增（{" → ".join(times)}）')
+# T25-3：hotels[0]
+m_hname = re.search(r'hotels:\s*\[\s*\{\s*name:\s*"([^"]*)"', trip_seg)
+m_hzh = re.search(r'address_zh:\s*"([^"]*)"', trip_seg)
+if m_hname and m_hname.group(1).startswith('Tabist上野39飯店'):
+    ok(f'T25-3：hotels[0].name 以 Tabist上野39飯店 開頭')
+else:
+    fail('T25-3：hotels[0].name 不符', m_hname.group(1) if m_hname else '找不到')
+if m_hzh and '上野6-8-11' in m_hzh.group(1):
+    ok('T25-3：hotels[0].address_zh 含 上野6-8-11')
+else:
+    fail('T25-3：hotels[0].address_zh 不符', m_hzh.group(1) if m_hzh else '找不到')
+
+# T25-4：禁字（TRIP 段＋mapdata.js）
+for word in ['駒形', '民宿', '橫濱', '横浜', '2026-07-', '2026/07/']:
+    bad = [name for name, seg in (('TRIP 段', trip_seg), ('mapdata.js', mapdata_js)) if word in seg]
+    if bad:
+        fail(f'T25-4：禁字「{word}」出現於 {"、".join(bad)}')
     else:
-        fail('T22-4：時間軸非單調遞增', str(times))
+        ok(f'T25-4：禁字「{word}」在 TRIP 段與 mapdata.js grep=0')
 
-    # T23-A2：Day 2 段禁字詞追加（Task23 起，停駛/改搭/原定 = 警語殘影字眼）
-    banned_a2 = ['停駛', '改搭', '原定']
-    for word in banned_a2:
-        if word in day2_seg:
-            fail(f'T23-A2：Day 2 段含禁字詞「{word}」（警語殘影）')
-        else:
-            ok(f'T23-A2：禁字詞「{word}」在 Day 2 段 grep=0')
+# T25-5：MAPDATA isoDate 集合＝TRIP itinerary isoDate 集合
+map_iso = re.findall(r'"isoDate":\s*"(\d{4}-\d{2}-\d{2})"', mapdata_js)
+if set(map_iso) == set(iso_dates) and len(map_iso) == len(set(map_iso)):
+    ok(f'T25-5：MAPDATA isoDate 集合＝TRIP（{len(map_iso)} 天）')
+else:
+    fail('T25-5：MAPDATA 與 TRIP isoDate 不對齊', f'MAPDATA {map_iso} vs TRIP {iso_dates}')
+
+# T25-6：Day 4 含 time 逐字「約 12:00」
+m_day4 = re.search(r'isoDate:\s*"2026-10-25"(.*?)\n    \},', trip_seg, re.DOTALL)
+if m_day4 and re.search(r'time:\s*"約 12:00"', m_day4.group(1)):
+    ok('T25-6：Day 4 含 time「約 12:00」')
+else:
+    fail('T25-6：Day 4 找不到 time「約 12:00」')
+
+# T25-7：全 repo（tracked ∪ 將 commit 的未追蹤檔）P-OLD 命中＝0；程式內顯式排除 東京/（SA B2，不得只靠 .gitignore）
+P_OLD = re.compile(r'[Mm][Aa][Pp][Ll][Ee] ?[Hh][Oo][Uu][Ss][Ee]')
+BINARY_EXT = ('.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.pdf', '.xlsx', '.kml')
+def git_list(*args):
+    r = subprocess.run(['git', '-c', 'core.quotepath=false', 'ls-files', *args],
+                       cwd=REPO, capture_output=True, text=True, encoding='utf-8')
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr.strip() or f'git ls-files {args} 失敗')
+    return [l for l in r.stdout.splitlines() if l]
+try:
+    tracked = git_list()
+    untracked = git_list('--others', '--exclude-standard')
+    git_ok = True
+except (OSError, RuntimeError) as e:
+    fail('T25-7：git 不可用，無法掃描（fail loud，不得靜默略過）', str(e))
+    tracked, untracked, git_ok = [], [], False
+if git_ok:
+    scan_all = sorted(f for f in set(tracked) | set(untracked) if not f.startswith('東京/'))
+    p_old_hits = []
+    for f in scan_all:
+        if f.lower().endswith(BINARY_EXT):
+            continue
+        fp = os.path.join(REPO, f)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, encoding='utf-8') as fh:
+                txt = fh.read()
+        except UnicodeDecodeError:
+            continue
+        n = len(P_OLD.findall(txt))
+        if n:
+            p_old_hits.append(f'{f}×{n}')
+    if p_old_hits:
+        fail('T25-7：P-OLD 仍有命中', '、'.join(p_old_hits))
+    else:
+        ok(f'T25-7：P-OLD 全 repo 命中＝0（掃 {len(scan_all)} 檔，已排除 東京/）')
+
+    # T25-8：.gitignore 含「東京/」一行，且 tracked 無 東京/ 路徑
+    gi_lines = [l.strip() for l in read('.gitignore').splitlines()]
+    if '東京/' in gi_lines:
+        ok('T25-8：.gitignore 含「東京/」')
+    else:
+        fail('T25-8：.gitignore 缺「東京/」一行')
+    tracked_tokyo = [f for f in tracked if f.startswith('東京/')]
+    if tracked_tokyo:
+        fail('T25-8：git ls-files 含 東京/ 路徑', f'{len(tracked_tokyo)} 筆')
+    else:
+        ok('T25-8：git ls-files 無 東京/ 路徑')
+
+# T25-9：README.md 與 manifest.webmanifest 不含「四人」
+for f in ['README.md', 'manifest.webmanifest']:
+    if '四人' in read(f):
+        fail(f'T25-9：{f} 仍含「四人」')
+    else:
+        ok(f'T25-9：{f} 無「四人」')
 
 # ────────────────────────────────────────────────────────────────
 # Task23：shoppingdata.js 結構驗收

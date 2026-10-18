@@ -8,7 +8,7 @@
 ### 背景與已拍板決策（不重議）
 - 已完成：Task19 已閉環（v19），功能面全數完成，剩 Task7 部署驗收。本 Task 為 Olina 實機回報 bug，插隊 Task7 之前，**與 Task19 一起部署**（閉環後由 orchestrator 一次 commit Task19+Task20）。
 - 症狀（Olina 實機）：匯入重要資料後，「訂位資料」小節的飯店訂位資訊排版重疊。
-- 成因（已核實到碼）：`.trip-private-row`（css/style.css L1167）為 flex 橫排，`.trip-private-row-label`（L1176）固定 `width: 72px; flex-shrink: 0`。此設計給短標籤（護照號碼/保單號/公司，≤4 個中文字）；但訂位小節的標籤來自匯入資料本身（trip-tab.js L617 `b.label`，如「MAPLEHOUSE 淺草 訂單編號」「MAPLEHOUSE 房型編號」），任意長度，塞不進 72px → 溢出擠壓/與 value 重疊。**單因、路徑唯一（同一 CSS 規則），非完整性敏感問題，不走診斷前置。**
+- 成因（已核實到碼）：`.trip-private-row`（css/style.css L1167）為 flex 橫排，`.trip-private-row-label`（L1176）固定 `width: 72px; flex-shrink: 0`。此設計給短標籤（護照號碼/保單號/公司，≤4 個中文字）；但訂位小節的標籤來自匯入資料本身（trip-tab.js L617 `b.label`，如「舊住宿 訂單編號」「舊住宿 房型編號」），任意長度，塞不進 72px → 溢出擠壓/與 value 重疊。**單因、路徑唯一（同一 CSS 規則），非完整性敏感問題，不走診斷前置。**
 - 已拍板：純 CSS 修復。不改資料、不改匯入碼格式、不改 trip-tab.js 渲染邏輯、**不需重匯**——修好後 Olina 現有已匯入資料直接顯示正常（資料在 localStorage，本 Task 完全不碰）。
 - 沿用契約：淺色主題；`--fs-sm/md` type scale（Task10 授權 `.trip-*` 用五階變數，維持）；safe-area；相對路徑；觸控目標 ≥44px。
 
@@ -25,7 +25,7 @@
 `.trip-private-row` 由「固定 72px 標籤欄硬橫排」改為**自適應雙模式**：
 
 1. **短標籤**（內容寬 ≤ 既有標籤欄位寬度，即護照號碼/保單號/公司/緊急電話這類）：維持既有觀感——標籤左欄、值右欄、同列橫排，各小節標籤欄視覺對齊不變。
-2. **長標籤**（如訂位資料的「MAPLEHOUSE 淺草 訂單編號」）：**自動上下堆疊**——label 完整顯示在上（可換行）、value 全寬顯示在下（沿用既有 `word-break: break-all` 換行），兩者零重疊。
+2. **長標籤**（如訂位資料的「舊住宿 訂單編號」）：**自動上下堆疊**——label 完整顯示在上（可換行）、value 全寬顯示在下（沿用既有 `word-break: break-all` 換行），兩者零重疊。
 
 建議實作（frontend 可用等效替代，例如 grid auto 欄，判準為準）：`.trip-private-row` 加 `flex-wrap: wrap`；`.trip-private-row-label` 改 `width: auto; min-width: 72px`（保短標籤對齊）並允許換行；`.trip-private-row-value` 設適當 `flex-basis`/`min-width`，使剩餘空間不足時整體換行到下一行成堆疊。**臨界寬度的取捨以「短標籤觀感不變、長標籤不重疊」兩判準為準，不硬性規定數值。**
 
@@ -44,7 +44,7 @@
 ### QA 驗收判準（機械優先）
 1. **diff 邊界**：git diff 僅 `css/style.css`（限 `.trip-private-*` 樣式）＋ `sw.js`＋`js/version.js`（三行 bump）；`js/trip-tab.js`、`index.html` 及其他一切檔案零 diff。
 2. **版號閘**：`CACHE_VERSION === APP_VERSION === 'v20'` 逐字元相等，DATE 已更新；PRECACHE 42 筆零增減。
-3. **長標籤不重疊**：以既有匯入機制（`App.privateData.save(測試匯入碼)`）或直接注入含 bookings 長標籤（「MAPLEHOUSE 淺草 訂單編號」「MAPLEHOUSE 房型編號」等）的測試資料，於 iPhone viewport 驗證 label/value 零重疊、內容完整可讀、無水平溢出（建議 Playwright 量測兩元素 boundingBox 不相交）。測畢清除測試資料。
+3. **長標籤不重疊**：以既有匯入機制（`App.privateData.save(測試匯入碼)`）或直接注入含 bookings 長標籤（「舊住宿 訂單編號」「舊住宿 房型編號」等）的測試資料，於 iPhone viewport 驗證 label/value 零重疊、內容完整可讀、無水平溢出（建議 Playwright 量測兩元素 boundingBox 不相交）。測畢清除測試資料。
 4. **短標籤觀感不變**：護照/保險/緊急聯絡人等短標籤列維持單行橫排、標籤欄對齊。
 5. **tel 連結**：可點且高度 ≥44px。
 6. 對話/翻譯/常用句/折價券/地圖分頁零 diff（由判準 1 機械涵蓋）。

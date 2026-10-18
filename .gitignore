@@ -6,3 +6,6 @@ __pycache__/
 .vscode/
 *.swp
 *.swo
+
+# 個資資料夾（Task25：不進版控、不部署）
+東京/
