@@ -1,6 +1,6 @@
-// js/mapdata.js — Task25／Task27 手寫（2026-10-22～10-25，4 天）；KML 仍為 7 月舊資料，⛔ 勿跑 make_mapdata.py 重生成（會蓋回 7 月舊點）
+// js/mapdata.js — Task25／Task27／Task28 手寫（2026-10-22～10-25，4 天）；KML 仍為 7 月舊資料，⛔ 勿跑 make_mapdata.py 重生成（會蓋回 7 月舊點）
 // 格式：window.MAPDATA = [{isoDate, places:[{name,lat,lon},...]},...] 依 isoDate 升冪
-// 座標來源見 DEVELOPMENT_LOG.md Task25／Task27 條目
+// 座標來源見 DEVELOPMENT_LOG.md Task25／Task27／Task28 條目
 
 window.MAPDATA = [
   {
@@ -17,6 +17,7 @@ window.MAPDATA = [
     {"name": "Tabist上野39飯店（住處）","lat": 35.7100870,"lon": 139.7755580},
     {"name": "原宿駅","lat": 35.6702145,"lon": 139.7024266},
     {"name": "明治神宮","lat": 35.6748417,"lon": 139.6996266},
+    {"name": "マクドナルド 原宿竹下通り店（麥當勞早餐）","lat": 35.6715739,"lon": 139.7034828},
     {"name": "東京駅（東京地下街）","lat": 35.6812546,"lon": 139.7667060},
     {"name": "浅草寺","lat": 35.7134032,"lon": 139.7955265},
     {"name": "東京スカイツリー（晴空塔）","lat": 35.7100543,"lon": 139.8107141}

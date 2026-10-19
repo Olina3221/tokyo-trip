@@ -237,6 +237,9 @@ scan_files = [
     # Task27 additive（SA 注意事項 4）
     'specs/Task27.spec.md',
     'specs/Task27.impact.md',
+    # Task28 additive（SA 注意事項 6）
+    'specs/Task28.spec.md',
+    'specs/Task28.impact.md',
 ]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
@@ -446,6 +449,10 @@ T27_DAYS = {
     ]),
 }
 
+# Task28：Day 2 09:00 那筆必須有 detail（T27-4 修訂用）；其他 Task27 日一律無 detail
+T28_DETAIL_TIME = {'2026-10-23': '09:00'}
+t27_item_objs = {}
+
 def t27_day_block(iso):
     m = re.search(r'isoDate:\s*"' + iso + r'"(.*?)\n    \},', trip_seg, re.DOTALL)
     return m.group(1) if m else ''
@@ -474,11 +481,20 @@ for iso, (exp_theme, exp_items) in T27_DAYS.items():
         ok(f'T27-2：{iso} theme＝「{exp_theme}」')
     else:
         fail(f'T27-2：{iso} theme 不符', m_theme.group(1) if m_theme else '找不到')
-    # T27-4：無 detail 鍵
-    if any(re.search(r'\bdetail\s*:', o) for o in item_objs) or not item_objs:
-        fail(f'T27-4：{iso} items 含 detail 鍵（或 items 為空）')
+    # T27-4（Task28 修訂）：Day 2 僅 time=09:00 那筆「必須有」detail、其餘皆無；Day 3 全無
+    must_detail = T28_DETAIL_TIME.get(iso)
+    has_detail = [bool(re.search(r'\bdetail\s*:', o)) for o in item_objs]
+    if not item_objs:
+        fail(f'T27-4：{iso} items 為空')
     else:
-        ok(f'T27-4：{iso} items 無 detail 鍵')
+        bad = [t for t, h in zip(times, has_detail) if h != (t == must_detail)]
+        if bad:
+            fail(f'T27-4（Task28 修訂）：{iso} detail 鍵分布不符', f'異常 time：{bad}；預期僅 {must_detail} 有 detail')
+        elif must_detail:
+            ok(f'T27-4（Task28 修訂）：{iso} 僅 {must_detail} 那筆有 detail，其餘無')
+        else:
+            ok(f'T27-4：{iso} items 無 detail 鍵')
+    t27_item_objs[iso] = item_objs
 
 # T27-3：TRIP 段佔位字串與錯字 grep=0
 for word in ['行程待補', '之後再補', '逢街']:
@@ -490,12 +506,14 @@ for word in ['行程待補', '之後再補', '逢街']:
 # T27-5：MAPDATA 點數／名稱逐字／座標範圍
 T27_MAP = {
     '2026-10-22': None,
-    '2026-10-23': ['Tabist上野39飯店（住處）', '原宿駅', '明治神宮', '東京駅（東京地下街）',
+    # Task28 修訂：第 4 點插入麥當勞（6→7 點）
+    '2026-10-23': ['Tabist上野39飯店（住處）', '原宿駅', '明治神宮',
+                   'マクドナルド 原宿竹下通り店（麥當勞早餐）', '東京駅（東京地下街）',
                    '浅草寺', '東京スカイツリー（晴空塔）'],
     '2026-10-24': ['Tabist上野39飯店（住處）', 'アメ横（上野阿美橫）', '秋葉原駅', '渋谷駅'],
     '2026-10-25': None,
 }
-T27_MAP_COUNT = {'2026-10-22': 3, '2026-10-23': 6, '2026-10-24': 4, '2026-10-25': 3}
+T27_MAP_COUNT = {'2026-10-22': 3, '2026-10-23': 7, '2026-10-24': 4, '2026-10-25': 3}  # Task28 修訂：10/23 6→7
 map_blocks = re.findall(r'"isoDate":\s*"(\d{4}-\d{2}-\d{2})",\s*"places":\s*\[(.*?)\]', mapdata_js, re.DOTALL)
 map_by_iso = {iso: re.findall(r'\{"name":\s*"([^"]+)",\s*"lat":\s*([-\d.]+),\s*"lon":\s*([-\d.]+)\}', body)
               for iso, body in map_blocks}
@@ -518,6 +536,55 @@ if bad_coord:
     fail('T27-5：座標超出 lat∈[35,36]／lon∈[139,141]', '、'.join(bad_coord))
 else:
     ok(f'T27-5：全部 {sum(len(p) for p in map_by_iso.values())} 點座標在 lat∈[35,36]、lon∈[139,141]')
+
+# ────────────────────────────────────────────────────────────────
+# Task28：10/23 早餐麥當勞 原宿竹下通店（detail＋地圖點；店家若再換，T28-1/2 與 T27-4/5 同批改）
+# ────────────────────────────────────────────────────────────────
+print('\n[Task28：麥當勞 原宿竹下通店]')
+
+# T28-1：Day 2 09:00 detail 逐字＝spec §1。
+# 跳脫層級：tripdata.js 原始碼內是字面「\n」（反斜線＋n）；抽出後一律 .replace('\\n', '\n') 轉成真換行，
+# 再與下方以真換行組成的預期值比對（預期值不使用 raw 字面，避免兩邊混用）。
+T28_DETAIL = ('🍔 麥當勞 原宿竹下通店（マクドナルド 原宿竹下通り店）\n'
+              '📍 東京都渋谷区神宮前1-19-8 原宿ファミリービル\n'
+              'JR 原宿站「竹下口」出站步行約 1 分\n'
+              '⏰ 營業 07:00～22:00，早餐供應至 10:30（營業時間可能變動）')
+t28_obj = next((o for o in t27_item_objs.get('2026-10-23', [])
+                if re.search(r'time:\s*"09:00"', o)), '')
+m_det = re.search(r'detail:\s*"([^"]*)"', t28_obj)
+det = m_det.group(1).replace('\\n', '\n') if m_det else None
+if det == T28_DETAIL and all(k in det for k in ['神宮前1-19-8', '竹下口', '10:30']):
+    ok('T28-1：Day 2 09:00 detail 與 spec §1 逐字相同（4 行）')
+else:
+    fail('T28-1：Day 2 09:00 detail 不符', f'實際：{det!r}')
+
+# T28-2：MAPDATA 10/23 第 4 點名稱逐字＋與 原宿駅 haversine 100～400m
+def t28_haversine(la1, lo1, la2, lo2):
+    import math
+    p1, p2 = math.radians(la1), math.radians(la2)
+    dp, dl = p2 - p1, math.radians(lo2 - lo1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371000 * math.asin(math.sqrt(a))
+
+pts23 = map_by_iso.get('2026-10-23', [])
+T28_NAME = 'マクドナルド 原宿竹下通り店（麥當勞早餐）'
+st = next((p for p in pts23 if p[0] == '原宿駅'), None)
+if len(pts23) >= 4 and pts23[3][0] == T28_NAME and st:
+    d = t28_haversine(float(st[1]), float(st[2]), float(pts23[3][1]), float(pts23[3][2]))
+    if 100 <= d <= 400:
+        ok(f'T28-2：10/23 第 4 點＝「{T28_NAME}」，距原宿駅 {d:.0f}m（100～400m）')
+    else:
+        fail('T28-2：麥當勞點距原宿駅不在 100～400m', f'{d:.0f}m')
+else:
+    fail('T28-2：10/23 第 4 點名稱不符或缺原宿駅', f'實際：{pts23[3][0] if len(pts23) >= 4 else None}')
+
+# T28-3：已歇業 原宿表参道店（神宮前1-13-9）在 TRIP 段＋mapdata.js grep=0（specs 合法含說明字樣，不掃）
+for word in ['表参道店', '1-13-9']:
+    hits = [n for n, txt in [('TRIP 段', trip_seg), ('js/mapdata.js', mapdata_js)] if word in txt]
+    if hits:
+        fail(f'T28-3：「{word}」出現於', '、'.join(hits))
+    else:
+        ok(f'T28-3：TRIP 段＋mapdata.js「{word}」grep=0')
 
 # ────────────────────────────────────────────────────────────────
 # Task23：shoppingdata.js 結構驗收
