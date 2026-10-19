@@ -43,6 +43,8 @@
 | — | Task24 | 東京四天上野行程 Excel 確認版（App 不動，另存確認版 xlsx） | 否 | ✅ 已完成（2026-09-28 QA PASS 49/49，2026-10-18 PM 補閉環；spec: `Task24.spec.md`） |
 | — | Task25 | 新行程覆蓋（10/22–10/25，Olina 單人）：住宿改 Tabist上野39飯店、航班依 Trip.com 確認信（回程 MM623 16:40）、交通依上野住處重算並附來源、Day 2/3「行程待補」、mapdata 手寫 4 天、單人化、舊住宿全 repo 移除、個資掃描＋.gitignore 東京/ | 否 | ✅ 已完成（2026-10-18 QA PASS，退回 1 次（歸屬 pm，spec v3 修訂後通過）；v25；spec: `Task25.spec.md`；真機顯示與重匯匯入碼由 Olina 流程外） |
 | — | Task26 | 確認版行程 Excel 回程更新為 MM623 16:40→20:00（另存 v1.1，原檔保留；`東京\` 例外授權僅限該檔） | 否 | ✅ 已完成（2026-10-18 QA PASS，0 FAIL；只改第 1 張 B19／C19，逐格比對 diff=2；交付 `東京\東京4天上野行程表_20261022-1025確認版_v1.1.xlsx`；spec: `Task26.spec.md`） |
+| — | Task27 | 依確認版 Excel v1.1 補 App Day 2／Day 3 行程（時間＋項目逐字，澀谷「逢街」更正為「逛街」）與地圖點（10/23 6 點、10/24 4 點）；Day 1／Day 4 零 diff、不寫交通細節（急件，10/22 出發前上線） | 否 | ✅ 已完成（2026-10-19 QA PASS 第 1 輪，0 FAIL；冒煙 79/0、Playwright 58/0、座標抽查 4 點皆 ≤300m；v26；spec: `Task27.spec.md`；部署與真機顯示由 Olina 流程外） |
+| 備註 | （待辦，Task27 backend 回報，未立案） | `qa_smoke_test.py` 在 Windows 主控台未設 `PYTHONUTF8=1` 時，輸出含「横浜」等字會因 cp950 編碼錯誤當掉；現行繞法＝執行時加 `PYTHONUTF8=1`（QA 已照此跑）。修法候選：腳本開頭 `sys.stdout.reconfigure(encoding='utf-8')`。 | — | ⚠ 未結（不開工，待排程） |
 | 備註 | （技術債，Task22 起，Task25 改寫） | **`js/mapdata.js` 為手寫**：Task25 起行程為 2026-10-22～25，mapdata.js 手寫 4 天與 TRIP isoDate 一一對齊；repo 外 KML 仍為 7 月版——任何人跑 `make_mapdata.py` 都會蓋回 7 月舊點（含舊住宿點），須先有 10 月版 KML。原 Task22 0722 手改技術債隨覆蓋失效。 | — | ⚠ 未結（重生成前必查） |
 | 備註 | （已立案 → Task17） | ~~KML 地圖功能（行程地點地圖化）~~ | — | Olina 已定案「混合」方向，2026-07-12 立案為 Task17，✅ 已隨 Task17 完成 |
 | 備註 | （併入 Task17） | ~~index.html 殘留 Task1 `.placeholder-card` 佔位 HTML 清理~~ | — | ✅ 已隨 Task17 完成（index.html 4 處＋style.css 4 個孤兒選擇器，QA grep=0） |

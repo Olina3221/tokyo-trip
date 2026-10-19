@@ -229,3 +229,20 @@
 - 2026-10-18 [Task25 閉環: PM] 新行程覆蓋 10/22–10/25（Olina 單人）完成，v25。App：航班依 Trip.com 確認信（MM626 去程不變、回程 MM623 16:40→20:00、起飛前 2.5 小時建議）、住宿 Tabist上野39飯店（英文名／入退房 15:00／10:00／電話皆附訂房頁來源）、交通依上野住處重算（Skyliner 主線＋京成本線備案、最近車站步行、回程反推「最晚 13:05 離開住處」）、Day 2／3 為「行程待補」佔位、mapdata 手寫 4 天；單人化（README／manifest／行前檢查清單）；舊住宿全 repo P-OLD＝0（歷史文件依替換規則改寫，git 歷史未改寫）；`.gitignore` 加 `東京/`；個資掃描 0 新增命中。QA 第 2 輪 PASS：冒煙 61/0、Playwright 58/58（假日期 10-22／23／25／18）、來源抽查 4 項一致；證據見 `Task25.tested` 原文（已併入本條）。
   QA 退回：1 輪（backend 0／frontend 0／pm 1／qa 0）→ Task25.qa_history.md
   待 Olina（流程外）：重產匯入碼並在自己手機重匯；舊住宿電話仍在 git 歷史；`東京\` 內舊住宿相關檔自行處理；本次旅平險；Excel 第 4 張「7.21 細節」去留；飯店電話 QA 無法線上二次複核（值與 Excel 線索一致）、「約 12:00」時間欄折行請真機目視。
+- 2026-10-19 [PM] Task27 立案＋spec 完成（Olina：「上次有更新EXCEL的行程。補一下 APP 的內容。」）：來源＝確認版 Excel v1.1 第 1 張（`東京\` 例外授權僅唯讀該檔）；Day 1／Day 4 App 已涵蓋 Excel 全部內容→零 diff；Day 2 補 8 筆、Day 3 補 5 筆（time／title 逐字，Excel D/E/F 空故不帶 detail、不寫交通）；「澀谷逢街」PM 裁定為「逛街」錯字；mapdata 手寫補 10/23 6 點、10/24 4 點（麥當勞未指明不建點、東京地下街以東京駅代表），座標由 backend 查證附來源；bump v25→v26。建 Task27.ready 交 SA。spec: `specs/Task27.spec.md`。
+- 2026-10-19 [Task27 實作: backend] Day 2／Day 3 依確認版 Excel v1.1 補齊，v26。開工前 Excel 比對：v1.1 mtime 2026-10-18 08:45:19、19,691 bytes，與 spec 盤點一致 → 依 SA 注意事項 1 不重讀、直接採 spec §1 表（未刪 `~$` 鎖檔、未讀 `東京\` 其他檔）。`js/tripdata.js` 只換 Day 2（theme＋8 筆）／Day 3（theme＋5 筆）兩物件，items 只有 time／title、省略 detail；`js/mapdata.js` 檔頭改「Task25／Task27 手寫」、10/23 補 5 點（共 6）、10/24 補 3 點（共 4），住處行逐字沿用；`js/version.js` v26／10/19、`sw.js` CACHE_VERSION v26（PRECACHE 44 不變）；`qa_smoke_test.py` additive T27-1～5＋scan_files 加 Task27 spec／impact。未跑 make_mapdata.py。
+  **地圖座標查證（名稱 ← 座標 ← 來源／查詢條件 ← 查證日 2026-10-19）**：主來源 OpenStreetMap（車站取 Overpass `railway=station` 的 JR 東日本站節點；其餘取 Nominatim `q=<名稱>&countrycodes=jp` 首筆）；交叉驗證＝日文維基百科 coordinates API（https://ja.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=<條目>），差距列於括號，全部 ≤183m。spec 指定 Google 地圖，但其頁面無法以程式取得，比照 Task25 改用 OSM＋第二來源，QA 可用 Google 地圖抽查。
+  - 原宿駅 ← 35.6702145,139.7024266 ← Overpass node 6806051378（railway=station，name=原宿，operator=東日本旅客鉄道；bbox 35.64,139.68,35.72,139.79）←（維基 35.670222,139.702667，差 22m）
+  - 明治神宮 ← 35.6748417,139.6996266 ← Nominatim `q=明治神宮` way 469908925（amenity=place_of_worship，代々木神園町1）←（維基 35.676111,139.699167，差 147m；OSM 為境內面中心、維基為社殿）
+  - 東京駅（東京地下街）← 35.6812546,139.7667060 ← Overpass node 2149761647（railway=station，name=東京，operator=東日本旅客鉄道）←（維基 35.681111,139.766667，差 16m）；依 spec §2 規則 2 以東京駅代表
+  - 浅草寺 ← 35.7134032,139.7955265 ← Nominatim `q=浅草寺` way 173154847（amenity=place_of_worship，浅草二丁目）←（維基 35.714722,139.796750，差 183m；OSM 為境內面中心）
+  - 東京スカイツリー（晴空塔）← 35.7100543,139.8107141 ← Nominatim `q=東京スカイツリー` way 288269147（tourism=attraction，押上一丁目）←（維基 35.710139,139.810833，差 14m）
+  - アメ横（上野阿美橫）← 35.7100241,139.7745414 ← Nominatim `q=アメ横` node 4496960001（amenity=marketplace，name=アメヤ横丁，アメ横通り 上野六丁目）←（維基條目無座標；同查詢另兩筆 アメ横通り 節點 35.70999,139.77460／35.70869,139.77544 皆在 160m 內）
+  - 秋葉原駅 ← 35.6983666,139.7730325 ← Overpass node 6780109836（railway=station，name=秋葉原，operator=東日本旅客鉄道）←（維基 35.698333,139.773056，差 4m）
+  - 渋谷駅 ← 35.6580800,139.7017647 ← Overpass node 241896099（railway=station，name=渋谷，operator=東日本旅客鉄道）←（維基 35.658611,139.701111，差 83m）
+  - 住處 35.7100870,139.7755580 沿用 Task25 值（來源見 Task25 條目）。
+- 2026-10-19 [Task27 閉環: PM] 依確認版 Excel v1.1 補齊 App Day 2／Day 3 行程與地圖點完成，v26。行程：Day 2 8 筆、Day 3 5 筆（time／title 逐字，無 detail、不寫交通；「澀谷逢街」PM 裁定更正為「逛街」，供 Olina 知悉）；Day 1／Day 4／航班／飯店／折價券零 diff。地圖手寫：10/23 6 點、10/24 4 點（麥當勞未指明不建點、東京地下街以東京駅代表），座標來源逐點列於上方實作條目（OSM＋維基交叉）。QA 第 1 輪 PASS：冒煙 79/0（PYTHONUTF8=1）、Playwright 390px 58/0、Google 地圖抽查 4 點皆 ≤300m（浅草寺 114m／渋谷駅 13m／明治神宮 175m／アメ横 117m）、Non-scope 檔零 diff、Excel 未動；證據見 `Task27.tested` 原文（已併入本條）。
+  QA 退回：0 輪
+  觀察項（記錄、不開 Task）：行程總覽卡 Day 2 theme 在 390px 被省略號截斷為「明治神宮・東京車站・淺草…」——`.trip-ov-day-theme` 自 Task10 即為 nowrap＋ellipsis 設計，非本輪改動，單日層完整顯示。
+  待辦（未立案）：`qa_smoke_test.py` 在 Windows 主控台未設 PYTHONUTF8 會因「横浜」編碼錯誤當掉，已登 INDEX 備註列。
+  待 Olina（流程外）：部署 v26 與真機目視；是否把「麥當勞 原宿竹下通店」加進 10/23 地圖尚在考慮，未立案。

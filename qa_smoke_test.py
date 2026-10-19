@@ -234,6 +234,9 @@ scan_files = [
     # Task25 additive（SA B3）
     'specs/Task25.spec.md',
     'specs/Task25.impact.md',
+    # Task27 additive（SA 注意事項 4）
+    'specs/Task27.spec.md',
+    'specs/Task27.impact.md',
 ]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
@@ -417,6 +420,104 @@ for f in ['README.md', 'manifest.webmanifest']:
         fail(f'T25-9：{f} 仍含「四人」')
     else:
         ok(f'T25-9：{f} 無「四人」')
+
+# ────────────────────────────────────────────────────────────────
+# Task27：Day 2／Day 3 依確認版 Excel v1.1 補齊（time／title 逐字寫死；日後改 Day2/3 須同批改本段）
+# ────────────────────────────────────────────────────────────────
+print('\n[Task27：Day 2／Day 3 行程與地圖點]')
+
+T27_DAYS = {
+    '2026-10-23': ('明治神宮・東京車站・淺草寺・晴空塔', [
+        ('05:30', '起床'),
+        ('06:30', '抵原宿站，前往明治神宮'),
+        ('09:00', '麥當勞早餐後前往東京地下街'),
+        ('中午', '於東京地下街用餐'),
+        ('14:30', '離開東京車站前往淺草寺'),
+        ('17:00', '離開淺草前往晴空塔'),
+        ('晚間', '於晴空塔用餐'),
+        ('20:00', '回 Tabist HOTEL UENO 39'),
+    ]),
+    '2026-10-24': ('上野阿美橫・秋葉原・澀谷', [
+        ('上午', '進上野、阿美橫'),
+        ('中午', '於上野阿美橫用餐'),
+        ('13:00', '前往秋葉原'),
+        ('16:00', '前往澀谷逛街'),
+        ('19:00', '回 Tabist HOTEL UENO 39 整理行李'),
+    ]),
+}
+
+def t27_day_block(iso):
+    m = re.search(r'isoDate:\s*"' + iso + r'"(.*?)\n    \},', trip_seg, re.DOTALL)
+    return m.group(1) if m else ''
+
+for iso, (exp_theme, exp_items) in T27_DAYS.items():
+    blk = t27_day_block(iso)
+    m_items = re.search(r'items:\s*\[(.*)\]', blk, re.DOTALL)
+    items_seg = m_items.group(1) if m_items else ''
+    item_objs = re.findall(r'\{[^{}]*\}', items_seg)
+    times = [ (re.search(r'time:\s*"([^"]*)"', o) or [None, None])[1] for o in item_objs ]
+    titles = [ (re.search(r'title:\s*"([^"]*)"', o) or [None, None])[1] for o in item_objs ]
+    exp_times = [t for t, _ in exp_items]
+    exp_titles = [t for _, t in exp_items]
+    # T27-1：筆數＋time 序列逐字（含非鐘點字，不用 HH:MM regex）
+    if len(item_objs) == len(exp_items) and times == exp_times:
+        ok(f'T27-1：{iso} items 恰 {len(exp_items)} 筆，time 序列逐字相符')
+    else:
+        fail(f'T27-1：{iso} items 筆數或 time 不符', f'預期 {exp_times}，實際 {times}')
+    # T27-2：title 逐字＋theme 逐字
+    if titles == exp_titles:
+        ok(f'T27-2：{iso} title 逐字相符')
+    else:
+        fail(f'T27-2：{iso} title 不符', f'預期 {exp_titles}，實際 {titles}')
+    m_theme = re.search(r'theme:\s*"([^"]*)"', blk)
+    if m_theme and m_theme.group(1) == exp_theme:
+        ok(f'T27-2：{iso} theme＝「{exp_theme}」')
+    else:
+        fail(f'T27-2：{iso} theme 不符', m_theme.group(1) if m_theme else '找不到')
+    # T27-4：無 detail 鍵
+    if any(re.search(r'\bdetail\s*:', o) for o in item_objs) or not item_objs:
+        fail(f'T27-4：{iso} items 含 detail 鍵（或 items 為空）')
+    else:
+        ok(f'T27-4：{iso} items 無 detail 鍵')
+
+# T27-3：TRIP 段佔位字串與錯字 grep=0
+for word in ['行程待補', '之後再補', '逢街']:
+    if word in trip_seg:
+        fail(f'T27-3：TRIP 段仍含「{word}」')
+    else:
+        ok(f'T27-3：TRIP 段「{word}」grep=0')
+
+# T27-5：MAPDATA 點數／名稱逐字／座標範圍
+T27_MAP = {
+    '2026-10-22': None,
+    '2026-10-23': ['Tabist上野39飯店（住處）', '原宿駅', '明治神宮', '東京駅（東京地下街）',
+                   '浅草寺', '東京スカイツリー（晴空塔）'],
+    '2026-10-24': ['Tabist上野39飯店（住處）', 'アメ横（上野阿美橫）', '秋葉原駅', '渋谷駅'],
+    '2026-10-25': None,
+}
+T27_MAP_COUNT = {'2026-10-22': 3, '2026-10-23': 6, '2026-10-24': 4, '2026-10-25': 3}
+map_blocks = re.findall(r'"isoDate":\s*"(\d{4}-\d{2}-\d{2})",\s*"places":\s*\[(.*?)\]', mapdata_js, re.DOTALL)
+map_by_iso = {iso: re.findall(r'\{"name":\s*"([^"]+)",\s*"lat":\s*([-\d.]+),\s*"lon":\s*([-\d.]+)\}', body)
+              for iso, body in map_blocks}
+for iso, exp_n in T27_MAP_COUNT.items():
+    pts = map_by_iso.get(iso, [])
+    if len(pts) == exp_n:
+        ok(f'T27-5：MAPDATA {iso} 恰 {exp_n} 點')
+    else:
+        fail(f'T27-5：MAPDATA {iso} 點數不符', f'預期 {exp_n}，實際 {len(pts)}')
+    exp_names = T27_MAP[iso]
+    if exp_names is not None:
+        names = [p[0] for p in pts]
+        if names == exp_names:
+            ok(f'T27-5：MAPDATA {iso} 名稱逐字相符')
+        else:
+            fail(f'T27-5：MAPDATA {iso} 名稱不符', f'預期 {exp_names}，實際 {names}')
+bad_coord = [f'{iso}:{n}' for iso, pts in map_by_iso.items() for n, la, lo in pts
+             if not (35 <= float(la) <= 36 and 139 <= float(lo) <= 141)]
+if bad_coord:
+    fail('T27-5：座標超出 lat∈[35,36]／lon∈[139,141]', '、'.join(bad_coord))
+else:
+    ok(f'T27-5：全部 {sum(len(p) for p in map_by_iso.values())} 點座標在 lat∈[35,36]、lon∈[139,141]')
 
 # ────────────────────────────────────────────────────────────────
 # Task23：shoppingdata.js 結構驗收

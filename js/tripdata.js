@@ -83,17 +83,28 @@ window.TRIP = {
     {
       day: "Day 2",
       isoDate: "2026-10-23",
-      theme: "行程待補",
+      theme: "明治神宮・東京車站・淺草寺・晴空塔",
       items: [
-        { time: "—", title: "行程待補", detail: "景點與交通之後再補" },
+        { time: "05:30", title: "起床" },
+        { time: "06:30", title: "抵原宿站，前往明治神宮" },
+        { time: "09:00", title: "麥當勞早餐後前往東京地下街" },
+        { time: "中午", title: "於東京地下街用餐" },
+        { time: "14:30", title: "離開東京車站前往淺草寺" },
+        { time: "17:00", title: "離開淺草前往晴空塔" },
+        { time: "晚間", title: "於晴空塔用餐" },
+        { time: "20:00", title: "回 Tabist HOTEL UENO 39" },
       ],
     },
     {
       day: "Day 3",
       isoDate: "2026-10-24",
-      theme: "行程待補",
+      theme: "上野阿美橫・秋葉原・澀谷",
       items: [
-        { time: "—", title: "行程待補", detail: "景點與交通之後再補" },
+        { time: "上午", title: "進上野、阿美橫" },
+        { time: "中午", title: "於上野阿美橫用餐" },
+        { time: "13:00", title: "前往秋葉原" },
+        { time: "16:00", title: "前往澀谷逛街" },
+        { time: "19:00", title: "回 Tabist HOTEL UENO 39 整理行李" },
       ],
     },
     {
