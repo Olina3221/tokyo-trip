@@ -240,6 +240,9 @@ scan_files = [
     # Task28 additive（SA 注意事項 6）
     'specs/Task28.spec.md',
     'specs/Task28.impact.md',
+    # Task29 additive（spec §3）
+    'specs/Task29.spec.md',
+    'specs/Task29.impact.md',
 ]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
@@ -449,8 +452,10 @@ T27_DAYS = {
     ]),
 }
 
-# Task28：Day 2 09:00 那筆必須有 detail（T27-4 修訂用）；其他 Task27 日一律無 detail
-T28_DETAIL_TIME = {'2026-10-23': '09:00'}
+# Task28／Task29：必須有 detail 的 time 白名單（T27-4 修訂用，iso→集合）；集合外一律無 detail
+# Task29 修訂：Day 2 加 中午／14:30／17:00（扭蛋店）、Day 3 加 13:00（秋葉原扭蛋店）
+T28_DETAIL_TIME = {'2026-10-23': {'09:00', '中午', '14:30', '17:00'},
+                   '2026-10-24': {'13:00'}}
 t27_item_objs = {}
 
 def t27_day_block(iso):
@@ -481,17 +486,19 @@ for iso, (exp_theme, exp_items) in T27_DAYS.items():
         ok(f'T27-2：{iso} theme＝「{exp_theme}」')
     else:
         fail(f'T27-2：{iso} theme 不符', m_theme.group(1) if m_theme else '找不到')
-    # T27-4（Task28 修訂）：Day 2 僅 time=09:00 那筆「必須有」detail、其餘皆無；Day 3 全無
-    must_detail = T28_DETAIL_TIME.get(iso)
+    # T27-4（Task29 修訂，白名單式）：集合內 time「必須有」detail、集合外「必須無」
+    must_detail = T28_DETAIL_TIME.get(iso, set())
     has_detail = [bool(re.search(r'\bdetail\s*:', o)) for o in item_objs]
     if not item_objs:
         fail(f'T27-4：{iso} items 為空')
     else:
-        bad = [t for t, h in zip(times, has_detail) if h != (t == must_detail)]
-        if bad:
-            fail(f'T27-4（Task28 修訂）：{iso} detail 鍵分布不符', f'異常 time：{bad}；預期僅 {must_detail} 有 detail')
+        bad = [t for t, h in zip(times, has_detail) if h != (t in must_detail)]
+        missing = [t for t in must_detail if t not in times]
+        if bad or missing:
+            fail(f'T27-4（Task29 修訂）：{iso} detail 鍵分布不符',
+                 f'異常 time：{bad}；缺 time：{missing}；預期僅 {sorted(must_detail)} 有 detail')
         elif must_detail:
-            ok(f'T27-4（Task28 修訂）：{iso} 僅 {must_detail} 那筆有 detail，其餘無')
+            ok(f'T27-4（Task29 修訂）：{iso} 僅 {sorted(must_detail)} 有 detail，其餘無')
         else:
             ok(f'T27-4：{iso} items 無 detail 鍵')
     t27_item_objs[iso] = item_objs
@@ -506,14 +513,20 @@ for word in ['行程待補', '之後再補', '逢街']:
 # T27-5：MAPDATA 點數／名稱逐字／座標範圍
 T27_MAP = {
     '2026-10-22': None,
-    # Task28 修訂：第 4 點插入麥當勞（6→7 點）
+    # Task28 修訂：第 4 點插入麥當勞（6→7 點）；Task29 修訂：第 6／8／10 點插扭蛋店（7→10 點）
     '2026-10-23': ['Tabist上野39飯店（住處）', '原宿駅', '明治神宮',
                    'マクドナルド 原宿竹下通り店（麥當勞早餐）', '東京駅（東京地下街）',
-                   '浅草寺', '東京スカイツリー（晴空塔）'],
-    '2026-10-24': ['Tabist上野39飯店（住處）', 'アメ横（上野阿美橫）', '秋葉原駅', '渋谷駅'],
+                   'ガシャポンバンダイオフィシャルショップ＠TOKYO STATION（扭蛋）',
+                   '浅草寺',
+                   'ガシャポンバンダイオフィシャルショップ 浅草花やしき店（扭蛋）',
+                   '東京スカイツリー（晴空塔）',
+                   'ガシャポンバンダイオフィシャルショップ 東京ソラマチ店（扭蛋）'],
+    # Task29 修訂：第 4 點插秋葉原扭蛋店（4→5 點）
+    '2026-10-24': ['Tabist上野39飯店（住處）', 'アメ横（上野阿美橫）', '秋葉原駅',
+                   'ガシャポンバンダイオフィシャルショップ 秋葉原店（扭蛋）', '渋谷駅'],
     '2026-10-25': None,
 }
-T27_MAP_COUNT = {'2026-10-22': 3, '2026-10-23': 7, '2026-10-24': 4, '2026-10-25': 3}  # Task28 修訂：10/23 6→7
+T27_MAP_COUNT = {'2026-10-22': 3, '2026-10-23': 10, '2026-10-24': 5, '2026-10-25': 3}  # Task29 修訂：10/23 7→10、10/24 4→5
 map_blocks = re.findall(r'"isoDate":\s*"(\d{4}-\d{2}-\d{2})",\s*"places":\s*\[(.*?)\]', mapdata_js, re.DOTALL)
 map_by_iso = {iso: re.findall(r'\{"name":\s*"([^"]+)",\s*"lat":\s*([-\d.]+),\s*"lon":\s*([-\d.]+)\}', body)
               for iso, body in map_blocks}
@@ -585,6 +598,59 @@ for word in ['表参道店', '1-13-9']:
         fail(f'T28-3：「{word}」出現於', '、'.join(hits))
     else:
         ok(f'T28-3：TRIP 段＋mapdata.js「{word}」grep=0')
+
+# ────────────────────────────────────────────────────────────────
+# Task29：萬代扭蛋官方店 4 家（detail＋地圖點；換店／刪店時 T29-1/2 與 T27-4/5 同批改）
+# 店名「＠」為全形（官方 bandainamco-am.co.jp 店舖頁、東京駅一番街官網寫法），detail／點名／斷言三處逐字一致
+# ────────────────────────────────────────────────────────────────
+print('\n[Task29：萬代扭蛋官方店]')
+
+# T29-1：detail 掛在指定 (iso, time)，含店名日文＋地址關鍵字（不斷言營業時間）
+# 跳脫層級同 T28-1：抽出後 .replace('\\n', '\n')；本斷言只用 in 比對，不含換行。
+T29_DETAIL = [
+    ('2026-10-23', '中午', 'ガシャポンバンダイオフィシャルショップ＠TOKYO STATION', '東京駅一番街'),
+    ('2026-10-23', '14:30', 'ガシャポンバンダイオフィシャルショップ 浅草花やしき店', '浅草2-28-1'),
+    ('2026-10-23', '17:00', 'ガシャポンバンダイオフィシャルショップ 東京ソラマチ店', '押上1-1-2'),
+    ('2026-10-24', '13:00', 'ガシャポンバンダイオフィシャルショップ 秋葉原店', '外神田1-15-9'),
+]
+for iso, t, name, addr in T29_DETAIL:
+    obj = next((o for o in t27_item_objs.get(iso, [])
+                if re.search(r'time:\s*"' + re.escape(t) + r'"', o)), '')
+    m_d = re.search(r'detail:\s*"([^"]*)"', obj)
+    d = m_d.group(1).replace('\\n', '\n') if m_d else ''
+    if name in d and addr in d:
+        ok(f'T29-1：{iso} {t} detail 含「{name}」＋「{addr}」')
+    else:
+        fail(f'T29-1：{iso} {t} detail 缺店名或地址', f'實際：{d!r}')
+
+# T29-2：新點名稱逐字＋位置序號（1-based）＋與參考點距離（spec §2 規則 3）
+T29_POINTS = [
+    ('2026-10-23', 6, 'ガシャポンバンダイオフィシャルショップ＠TOKYO STATION（扭蛋）', '東京駅（東京地下街）', 0, 500),
+    ('2026-10-23', 8, 'ガシャポンバンダイオフィシャルショップ 浅草花やしき店（扭蛋）', '浅草寺', 100, 600),
+    ('2026-10-23', 10, 'ガシャポンバンダイオフィシャルショップ 東京ソラマチ店（扭蛋）', '東京スカイツリー（晴空塔）', 0, 400),
+    ('2026-10-24', 4, 'ガシャポンバンダイオフィシャルショップ 秋葉原店（扭蛋）', '秋葉原駅', 0, 500),
+]
+for iso, pos, name, ref, lo_m, hi_m in T29_POINTS:
+    pts = map_by_iso.get(iso, [])
+    p = pts[pos - 1] if len(pts) >= pos else None
+    r = next((x for x in pts if x[0] == ref), None)
+    if not p or p[0] != name or not r:
+        fail(f'T29-2：{iso} 第 {pos} 點名稱不符或缺參考點「{ref}」', f'實際：{p[0] if p else None}')
+        continue
+    dist = t28_haversine(float(r[1]), float(r[2]), float(p[1]), float(p[2]))
+    if lo_m <= dist <= hi_m:
+        ok(f'T29-2：{iso} 第 {pos} 點＝「{name}」，距{ref} {dist:.0f}m（{lo_m}～{hi_m}m）')
+    else:
+        fail(f'T29-2：{iso} 第 {pos} 點距{ref}超界', f'{dist:.0f}m，應 {lo_m}～{hi_m}m')
+
+# T29-3：不加的分店（池袋 2 家、歌舞伎町）在 TRIP 段＋mapdata.js grep=0
+# ⚠ 範圍只能是 trip_seg＋mapdata_js：COUPONS 段既有折價券說明含「西武池袋」，掃整個 tripdata.js 必誤紅
+for word in ['池袋', '歌舞伎町']:
+    hits = [n for n, txt in [('TRIP 段', trip_seg), ('js/mapdata.js', mapdata_js)] if word in txt]
+    if hits:
+        fail(f'T29-3：「{word}」出現於', '、'.join(hits))
+    else:
+        ok(f'T29-3：TRIP 段＋mapdata.js「{word}」grep=0')
 
 # ────────────────────────────────────────────────────────────────
 # Task23：shoppingdata.js 結構驗收
