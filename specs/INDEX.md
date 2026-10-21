@@ -46,6 +46,7 @@
 | — | Task27 | 依確認版 Excel v1.1 補 App Day 2／Day 3 行程（時間＋項目逐字，澀谷「逢街」更正為「逛街」）與地圖點（10/23 6 點、10/24 4 點）；Day 1／Day 4 零 diff、不寫交通細節（急件，10/22 出發前上線） | 否 | ✅ 已完成（2026-10-19 QA PASS 第 1 輪，0 FAIL；冒煙 79/0、Playwright 58/0、座標抽查 4 點皆 ≤300m；v26；spec: `Task27.spec.md`；部署與真機顯示由 Olina 流程外） |
 | — | Task28 | 10/23 早餐麥當勞 原宿竹下通店加入 App：行程 Day 2 09:00 加 detail（店名／地址／竹下口／營業時間，title 維持 Excel 逐字）＋地圖 10/23 第 4 點（6→7 點，座標 OSM＋Tabelog＋國土地理院三來源）；表参道店已歇業機械禁用 | 否 | ✅ 已完成（2026-10-19 QA PASS 第 1 輪，0 FAIL；冒煙 83/0、突變測試 8/8、Playwright 40/40、Google 地圖抽查差 7m；v27；spec: `Task28.spec.md`；部署與真機顯示由 Olina 流程外） |
 | — | Task29 | 扭蛋萬代官方店 4 家加入 App：10/23 東京駅一番街（＠TOKYO STATION，官方全形＠）／淺草花屋敷／東京晴空街道、10/24 秋葉原；行程對應 4 筆加 detail（title 維持 Excel 逐字）＋地圖 10/23 7→10 點、10/24 4→5 點（座標雙來源）；池袋／歌舞伎町不加（急件，10/22 出發前上線） | 否 | ✅ 已完成（2026-10-19 QA PASS 第 1 輪，0 FAIL；冒煙 93/0、突變測試 8/8、Playwright 49/49、Google 地圖抽查 12～104m；v28；spec: `Task29.spec.md`；秋葉原店查無大樓名，位置提示行依 spec 省略；部署與真機顯示由 Olina 流程外） |
+| — | Task30 | 雲端 session 入口與交接：repo 根 `CLAUDE.md`（雲端精簡流程、版號紀律、個資鐵律、上線步驟、結束前交接進同一個 PR）＋`specs/STATE.md`（Layer 3）＋冒煙 T30 判準＋Layer 2 PROJECTS／STATE 指針；不 bump 版號（急件，10/22 出發前上線） | 否 | ✅ 已完成（2026-10-21 QA PASS 第 1 輪，0 FAIL；冒煙 127/0（93＋T30 34 條）、check_state repo／Layer 2／`--all` 全 OK；D1 採納：my-agent `state_inject.ps1` 補 tokyo-trip 觸發列；版號維持 v28；spec: `Task30.spec.md`） |
 | 備註 | （待辦，Task27 backend 回報，未立案） | `qa_smoke_test.py` 在 Windows 主控台未設 `PYTHONUTF8=1` 時，輸出含「横浜」等字會因 cp950 編碼錯誤當掉；現行繞法＝執行時加 `PYTHONUTF8=1`（QA 已照此跑）。修法候選：腳本開頭 `sys.stdout.reconfigure(encoding='utf-8')`。 | — | ⚠ 未結（不開工，待排程） |
 | 備註 | （技術債，Task22 起，Task25 改寫） | **`js/mapdata.js` 為手寫**：Task25 起行程為 2026-10-22～25，mapdata.js 手寫 4 天與 TRIP isoDate 一一對齊；repo 外 KML 仍為 7 月版——任何人跑 `make_mapdata.py` 都會蓋回 7 月舊點（含舊住宿點），須先有 10 月版 KML。原 Task22 0722 手改技術債隨覆蓋失效。 | — | ⚠ 未結（重生成前必查） |
 | 備註 | （已立案 → Task17） | ~~KML 地圖功能（行程地點地圖化）~~ | — | Olina 已定案「混合」方向，2026-07-12 立案為 Task17，✅ 已隨 Task17 完成 |
@@ -128,5 +129,7 @@
 ## 檔案
 
 - `SYSTEM_MAP.md` — 系統地圖（SA 影響分析用）
+- `STATE.md` — Layer 3 活狀態（現在式，覆寫；Task30 起）
+- repo 根 `CLAUDE.md` — 雲端 session 入口（本機／雲端判別、雲端精簡流程、版號、個資、上線步驟；Task30 起，內容受冒煙 T30 鎖）
 - `Task1.spec.md` — Task1 規格
 - 各 Task 的 `.impact.md` / `.qa_failed.md` 等 sentinel 依 `signal-flow.md` 在本目錄流轉

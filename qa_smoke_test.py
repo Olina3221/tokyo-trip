@@ -243,6 +243,11 @@ scan_files = [
     # Task29 additive（spec §3）
     'specs/Task29.spec.md',
     'specs/Task29.impact.md',
+    # Task30 additive（spec §4-3）
+    'CLAUDE.md',
+    'specs/STATE.md',
+    'specs/Task30.spec.md',
+    'specs/Task30.impact.md',
 ]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
@@ -801,6 +806,80 @@ if found_clear:
     fail('T23-C7：repo 中含 localStorage.clear() 可執行呼叫', str(found_clear))
 else:
     ok('T23-C7：已知 JS 檔無 localStorage.clear() 可執行呼叫')
+
+# ────────────────────────────────────────────────────────────────
+# Task30：雲端入口 CLAUDE.md 內容鎖＋specs/STATE.md 結構（鏡像 my-agent check_state.py；本機以 check_state.py 為權威）
+# 改 CLAUDE.md 刪到下列關鍵字、或改 STATE 章節規則，須同批改本段
+# ────────────────────────────────────────────────────────────────
+print('\n[Task30：CLAUDE.md 與 specs/STATE.md]')
+
+T30_CLAUDE_MAX = 6000
+T30_KEYWORDS = [
+    '繁體中文', 'specs/STATE.md', 'specs/INDEX.md', 'specs/SYSTEM_MAP.md', 'BOOTSTRAP.md',
+    'TaskN.spec.md', '影響範圍', 'sentinel', 'scan_files', 'qa_smoke_test.py', 'PYTHONUTF8=1',
+    'js/version.js', 'APP_VERSION', 'APP_VERSION_DATE', 'sw.js', 'CACHE_VERSION', '逐字元',
+    '個資', '東京/', 'PR', 'Merge', 'GitHub Pages', '版號', 'DEVELOPMENT_LOG.md', '同一個 PR',
+]
+# Liquid 樣板開頭符號（Jekyll 建置會擋全站部署）；以拼接產生，本檔自身不含該字面
+T30_LIQUID = ['{' + '{', '{' + '%']
+
+if os.path.isfile(os.path.join(REPO, 'CLAUDE.md')):
+    t30_claude = read('CLAUDE.md')
+    ok('T30-1：CLAUDE.md 存在')
+    if len(t30_claude) <= T30_CLAUDE_MAX:
+        ok(f'T30-2：CLAUDE.md {len(t30_claude)} 字元 ≤ {T30_CLAUDE_MAX}')
+    else:
+        fail('T30-2：CLAUDE.md 超過字元上限', f'{len(t30_claude)} > {T30_CLAUDE_MAX}')
+    for kw in T30_KEYWORDS:
+        if kw in t30_claude:
+            ok(f'T30-3：CLAUDE.md 含「{kw}」')
+        else:
+            fail(f'T30-3：CLAUDE.md 缺關鍵字「{kw}」')
+else:
+    t30_claude = None
+    fail('T30-1：CLAUDE.md 不存在')
+
+T30_SECTIONS = ['Current Status', 'In Progress', 'Open Items', 'Last Handoff']
+T30_STATE_MAX = 4000
+if os.path.isfile(os.path.join(REPO, 'specs/STATE.md')):
+    t30_state = read('specs/STATE.md')
+    ok('T30-4：specs/STATE.md 存在')
+    if len(t30_state) <= T30_STATE_MAX:
+        ok(f'T30-5：specs/STATE.md {len(t30_state)} 字元 ≤ {T30_STATE_MAX}')
+    else:
+        fail('T30-5：specs/STATE.md 超過字元上限（歷史搬 DEVELOPMENT_LOG.md）',
+             f'{len(t30_state)} > {T30_STATE_MAX}')
+    t30_h2 = re.findall(r'^## (.+)$', t30_state, flags=re.M)
+    if t30_h2 == T30_SECTIONS:
+        ok('T30-6：specs/STATE.md H2 恰為四章且順序正確')
+    else:
+        fail('T30-6：specs/STATE.md H2 章節不符', f'實際 {t30_h2}')
+    if re.search(r'^- Updated:', t30_state, flags=re.M):
+        ok('T30-7：specs/STATE.md 含 Updated: 行')
+    else:
+        fail('T30-7：specs/STATE.md 缺 Updated: 行')
+    t30_oi = re.search(r'^## Open Items\n(.*?)(?=^## |\Z)', t30_state, flags=re.M | re.S)
+    t30_bad = []
+    if t30_oi:
+        for i, item in enumerate(re.findall(r'^- .*(?:\n(?!^[-#>]).*)*', t30_oi.group(1), flags=re.M), 1):
+            if '結案條件' not in item:
+                t30_bad.append(f'第 {i} 條')
+    if t30_bad:
+        fail('T30-8：Open Items 有條目缺「結案條件」', '、'.join(t30_bad))
+    else:
+        ok('T30-8：Open Items 每條皆含「結案條件」')
+else:
+    t30_state = None
+    fail('T30-4：specs/STATE.md 不存在')
+
+for name, txt in (('CLAUDE.md', t30_claude), ('specs/STATE.md', t30_state)):
+    if txt is None:
+        continue
+    hits = [s for s in T30_LIQUID if s in txt]
+    if hits:
+        fail(f'T30-9：{name} 含 Liquid 樣板開頭符號（會擋 Pages 建置）', str(hits))
+    else:
+        ok(f'T30-9：{name} 無 Liquid 樣板開頭符號')
 
 # ────────────────────────────────────────────────────────────────
 # 結果彙總
