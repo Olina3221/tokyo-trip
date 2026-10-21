@@ -64,7 +64,7 @@
 ### 2. 新 key：`itineraryDays`（選填）
 
 - 型別：陣列，元素 `{ isoDate: "YYYY-MM-DD", theme?: 字串, items: [ { time?, title?, detail? } ] }`；items 元素 schema 與公開層 `itinerary[].items[]` 相同（`detail` 允許 `\n`）。
-- 對應：以 `isoDate` 對公開層 `window.TRIP.itinerary[].isoDate`。對上的那一天，單日層內容**整天以匯入碼的 `items` 取代**；有給 `theme` 時，總覽日卡與單日層的主題字一併取代，沒給則沿用公開層 theme。
+- 對應：以 `isoDate` 對公開層 `window.TRIP.itinerary[].isoDate`。對上的那一天，單日層內容**整天以匯入碼的 `items` 取代**；有給 `theme` 時，總覽日卡與單日層的主題字一併取代，沒給則沿用公開層 theme。（閉環追認：「有給」＝`theme` 為非空字串；空字串或非字串沿用公開層——SA 技術裁定，PM 2026-10-21 閉環時追認。）
 - 有效判定（逐筆）：元素為物件、`isoDate` 為字串且對得上公開層某天、`items` 為陣列 → 有效；`items` 內非物件元素略過。`items` 為空陣列（有效但無項目）→ 該天顯示既有「本日無排定行程」。
 - 無效或對不上的元素**靜默略過**（不新增天數、不改天數順序、不報錯）；同一 `isoDate` 出現多筆時取第一筆有效者。
 - 未覆蓋的天、以及整個 key 不存在/非陣列時 → 公開層原內容（＝v28 行為）。
