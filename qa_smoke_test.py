@@ -252,6 +252,8 @@ scan_files = [
     'specs/Task32.spec.md',
     'specs/Task32.impact.md',
     'specs/Task32.api.md',
+    # Task33 additive（診斷報告納入隱私掃描；比照 Task32 插在 Task31 區塊之前，T31_SCAN_ADDED 不變）
+    'specs/Task33.diagnosis.md',
     # Task31 additive（spec §4-8；存在性由 T31-8 自檢，SA B4）
     'specs/PIPELINE.md',
     'specs/Task31.spec.md',
