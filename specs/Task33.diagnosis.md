@@ -85,6 +85,35 @@
 
 ---
 
+## 實測（2026-10-21 補）
+
+- **[實測] T1 Olina 本人手機翻譯也不能用**（Olina 回報）→ 症狀為**全體性**，非妹妹裝置特有。
+- **[實測] T2 主 session 直接呼叫三支 API**（2026-10-21 12:23 UTC，用 repo 內金鑰＋`Referer: https://olina3221.github.io/`，各 1～2 次；金鑰值與專案編號不寫入本文件）：
+
+| API | HTTP | Google 回應（原文摘錄） | App 內落點 |
+|---|---|---|---|
+| Translation v2 | 403 | reason `userRateLimitExceeded`、message「User Rate Limit Exceeded」（連打 2 次皆同） | 文字模式 M2「金鑰未授權此網址…」；對話模式（STT 成功時）M4 |
+| Vision images:annotate | 403 `PERMISSION_DENIED` | 「This API method requires billing to be enabled. Please enable billing on project …」 | 拍照 M6「API 拒絕存取（金鑰限制）」 |
+| Speech recognize | 403 `PERMISSION_DENIED` | 同上，requires billing to be enabled | 對話模式 M4「語音辨識服務未授權…」 |
+
+- 判讀：帶正確 Referer 仍得到「需啟用帳單」而非參照網址被拒 → **Referer 限制本身通過**，金鑰存在且有效（無效金鑰會回 400）。三支全 403，與妹妹／Olina 看到的「未授權」類文案（M2／M4／M6）一致。
+- Translation 回的是 rate limit 而非 billing 字樣：[推斷] 為帳單停用後該專案配額歸零的表現；與 RC-4「公開金鑰被盜用燒光額度」**不能完全排除**，需看主控台用量圖。
+
+### 實測後各 RC 信心更新
+
+| RC | 實測前 | 實測後 | 依據 |
+|---|---|---|---|
+| RC-1 帳單停用／試用到期 | 中高 [推斷] | **成立，主因 [實測]** | Vision、Speech 明確回 requires billing to be enabled；Translation 同時 403 |
+| RC-2 金鑰被停用／API 限制被改 | 中 | **極低** | 金鑰仍被接受並進到帳單檢查層（非 400、非 API_KEY_SERVICE_BLOCKED） |
+| RC-3 API 服務被停用 | 低中 | **極低** | 回的是 billing 而非 SERVICE_DISABLED |
+| RC-4 配額耗盡／盜用 | 低中 | **低～中，未排除（從屬）** | Translation 回 userRateLimitExceeded；可能只是帳單停用的連帶表現，是否另有盜用待看主控台用量 [待 Olina] |
+| RC-5 Referer 不符（裝置性） | 中 | **不成立** | Olina 本人也壞（T1）；帶正確 Referer 仍 403 且原因非參照網址（T2） |
+| RC-6 config.js 未載入（NO_KEY） | 低 | **不成立／極低** | 症狀全體性；NO_KEY 不會發出網路請求，與實測 403 路徑不同 |
+
+**實測後結論：主因＝RC-1（Google Cloud 專案帳單停用，試用到期的可能性高），已實測；RC-4（盜用燒額度）為唯一未排除的從屬可能，需主控台用量確認；其餘 RC-2／3／5／6 不成立或極低。A-1／A-2 放大因子不變（使用者看到的「金鑰未授權」文案掩蓋了真正原因是帳單）。**
+
+---
+
 ## 根因清單（全部列舉）
 
 依「誰會中」分兩群：**全體性**（Google Cloud 專案／金鑰端，Olina 也會壞）與**裝置性**（只有妹妹壞）。
@@ -122,7 +151,8 @@
 - **信心**：程式碼側（①②③欄）高——金鑰只有一個來源、無覆寫者、Task32 未觸及翻譯鏈、SW 不攔 API 呼叫、快取不可能帶不同金鑰。根因排序（哪一條是真兇）低到中，因為無法實呼叫 Google、看不到回應體。
 - **已知盲點**：(1) 看不到 Google 實際回應（403 細分原因 reason 欄）；(2) 看不到 Google Cloud Console（帳單、試用、金鑰限制、API 啟用、配額、用量圖）；(3) 未拿到錯誤訊息原文，M1 與 M2/M4 尚無法二分；(4) 不知 Olina 本人現在是否正常（決定全體性 vs 裝置性）；(5) 不知妹妹 iOS 版本、是否裝內容阻擋器、實際開啟的網址；(6) 「網頁裡面的翻譯功能」也可能被誤指為 Safari 內建的網頁翻譯，而非 App 翻譯分頁（機率低，但未排除）。
 - **是否全部列舉**：就 repo 可見範圍，程式碼側能產生「金鑰／未授權」字樣的路徑已全部列出（M1～M6）；Google 平台側 403 成因依一般知識列舉（帳單、金鑰限制、API 停用、配額、Referer），**可能仍有未列的平台側成因**（例如專案被停權）。
-- **最快二分法**：Olina 用自己手機現在試一次文字翻譯。她也壞 → 全體性（RC-1～4）；她正常 → 裝置性（RC-5／6）。
+- **最快二分法**：Olina 用自己手機現在試一次文字翻譯。她也壞 → 全體性（RC-1～4）；她正常 → 裝置性（RC-5／6）。→ **已完成：她也壞（見「實測」段），且直呼 API 已實測 RC-1。**
+- **實測後剩餘盲點**：主控台帳單狀態（試用到期 vs 付款失敗 vs 手動關閉）與 Translation 近期用量（判斷 RC-4 是否同時存在）仍 [待 Olina]。下方 Q1～Q6、Q8 已非必要（症狀已確定為全體性），Q7 的帳單與用量兩項仍需確認。
 
 ---
 
