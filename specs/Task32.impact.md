@@ -1,4 +1,4 @@
-# Task32 影響分析（SA，v1）
+# Task32 影響分析（SA，v1 初稿——未定稿：D3 推翻待 PM 修訂 spec 後補完）
 
 > 2026-10-21 SA。依據：`specs/Task32.spec.md`（v1.2，PM 已 commit）、`specs/SYSTEM_MAP.md`（L27 trip-tab、L95–97 privateData 紀律、L113 冒煙寫死斷言）、實讀 `js/trip-tab.js`、`js/import-data.js`、`js/map-tab.js`、`css/style.css`、`qa_smoke_test.py`。
 > 個資：本檔只用 spec 既有公開值與 `ZZ` 假值，不含任何真實航班以外的個人資料或訂位代號。
