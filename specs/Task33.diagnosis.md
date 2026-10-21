@@ -171,3 +171,21 @@
    - 配額／用量：近幾天 Translation 用量是否異常暴增、是否有自訂每日上限。
    - 是否收過 Google 的「金鑰外洩／公開曝光」通知信。
 8. **Q8 妹妹說的「翻譯功能」**是指 App 下方導覽列的「翻譯」分頁，還是 Safari 自帶的「翻譯網頁」？
+
+---
+
+## 處置與結案（2026-10-21 補）
+
+- **修法（repo 外，不走 pipeline）**：Olina 確認 Google Cloud 專案擁有者為她本人帳號，並於主控台將帳戶升級為付費帳戶（對應 RC-1）。帳號、專案編號、金鑰值皆不寫入本文件。
+- **程式與版號**：不改任何程式、不 bump 版號（維持 v29）；本 Task 只有診斷報告與交接文件。
+- **修後實測 [實測]**（主 session，2026-10-21，repo 金鑰＋`Referer: https://olina3221.github.io/`）：
+  - Translation v2：回 `translatedText`，正常。
+  - Vision images:annotate：回 `responses`，正常。
+  - Speech recognize：回 400「RecognitionAudio not set」（測試刻意送空音訊）→ 已過授權與帳單檢查、API 可用，非 403。
+  - 結論：三支 API 恢復，RC-1 修復確認。
+- **信號**：依 `specs/PIPELINE.md` 第 3 節（不走 pipeline 的修法由執行者完成時刪），已刪 `Task33.diagnosed`；本 Task 未建 `diagnosis_approved`。本檔保留。
+- **未在本次處理（已記入 `specs/STATE.md` Open Items）**：
+  - RC-4（盜用／用量異常）未完全排除：建議 Olina 在主控台設預算快訊並看近期用量圖。
+  - A-1／A-2 放大因子：403 一律顯示同一句「金鑰未授權」類文案、掩蓋帳單等真正原因；可日後另開 Task 改善錯誤文案。
+  - 文件落差：`README.md:54` 與 `js/config.js:2` 註解寫 API 限制兩個，`specs/INDEX.md` 寫三個（Translation＋Vision＋Speech-to-Text）。
+- **手機端**：Olina／妹妹的 PWA 不需重裝或清快取（金鑰與程式未變，SW 不攔 API 呼叫）；若仍顯示錯誤，關掉 App 重開再試一次。
