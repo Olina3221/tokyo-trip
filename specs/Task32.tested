@@ -1,0 +1,56 @@
+# Task32 QA 測試證據（2026-10-21，雲端 session，分支 claude/task32-per-person-flight）
+
+> 假資料一律明顯假值（ZZ 航班號、假航空、假民宿、FAKE00）；測試腳本在 scratchpad（不進 repo）。
+
+## 第一階段：全系統冒煙
+- 指令：`PYTHONUTF8=1 python qa_smoke_test.py`
+- 結果：**PASS 181 / FAIL 0**（T31-7 SKIP 雲端正常；T32-1～T32-7 全 PASS，含 T32-7 `.trip-override-hint`）
+- 迴歸清單逐項：T25-2 航班斷言（MM626／MM623）PASS、T25-7 全 repo 禁字掃描 PASS、T27/T28/T29 PASS、M1／M2／M4（`_renderLodgingBlock()` 呼叫數＝3）PASS、Task21 type-scale PASS、T31-8 仍檢查原 8 個 Task31 檔 PASS。
+- 新功能已入冒煙基線：T32-1～T32-7（scan_files 含 Task32 三檔，插在 Task31 區塊前；`scan_files[-8:]` 仍為 PIPELINE.md／Task31 兩檔／agents 五檔）。
+
+## 第二階段：本次 spec 冒煙
+- `python -m http.server 8080`（v29）＋ `8028`（origin/main v28 基線，`git archive` 到 scratchpad）＋ Playwright Chromium 390×844。
+- 頁面載入、切到行程分頁、四個藥丸、匯入／清除流程：全程 console error／pageerror＝0。
+
+## 第三階段：整合測試（Playwright 實測 54 項，PASS 54 / FAIL 0）
+判準逐條：
+1. 冒煙 FAIL＝0，T25-2 航班／行程斷言照舊 PASS — PASS
+2. `git diff origin/main --stat`：`js/tripdata.js`、`js/import-data.js`、`js/mapdata.js`、`行前檢查清單.md` 皆不在；PRECACHE 44＝44 — PASS
+3. `APP_VERSION`＝`CACHE_VERSION`＝`v29`（main 為 v28），`APP_VERSION_DATE`＝`10/21`；畫面徽章 `v29 · 10/21` — PASS
+4. 未匯入：航班 section innerHTML 與 v28 逐字相同（2 卡 MM626／MM623）、總覽與 Day1–4 innerHTML 與 v28 逐字相同、無提示行 — PASS
+5. 匯入只含假 insurance／bookings／lodging 的碼：航班／總覽／Day1–4／公開段 innerHTML 仍與 v28 逐字相同 — PASS
+6. 只去程：1 卡 ZZ901／07:00／東京羽田 T3，無 MM626／MM623，提示行「以下為你匯入的航班」為 section 第一子元素；加佔位卡 → 2 卡，第 2 張 innerHTML 僅 label＋note、無 undefined — PASS
+7. 缺 to／缺 terminal／from 為字串／全非字串欄位 → 4 卡照常，innerText 無 undefined／null／[object Object]，字串 from 未印出 — PASS
+8. `[]`、`"x"`、`[1,"a"]` → 2 張公開卡、無提示、innerHTML＝v28 — PASS
+9. Day4 覆蓋：單日層只有「09:00 假項目」＋提示行（`.trip-itin-day-content` 第一子元素）、無 MM623；總覽 Day4 主題「假主題」；Day1–3 innerHTML＝v28；不給 theme → 「歸途」；`window.TRIP` 未被 mutate。補測：items 空陣列 → 提示行＋「本日無排定行程」；items 非物件略過、非字串欄位空、detail XSS 文字化且 `\n`→`<br>`；同 isoDate 取第一筆有效者 — PASS
+10. `2026-12-31`、缺 items、`"x"`、`5`、`null`、`[1]` → 仍 4 天、Day1–4＝v28、無提示行、無錯誤 — PASS
+11. Day4 單日層開著（在重要資料藥丸匯入）→ 不重開即變（單日層仍開、總覽仍隱藏、航班同步換）；清除 → Day4 innerHTML＝v28、航班＝v28、主題「歸途」、視圖仍 Day4、active 藥丸仍「重要資料」 — PASS
+12. `localStorage` getter 拋錯 → `isAvailable()` false、航班 2 卡（innerHTML＝v28）、4 天、公開段 6 列、無 `.trip-error`、無提示、零 pageerror — PASS
+13. flightNo `<img src=x onerror=alert(1)>` → 文字顯示、section 內 img＝0 — PASS
+14. scan_files 含 Task32 三檔、T31_SCAN_ADDED 不變（T32-1／T31-8 PASS）、T25-7 全 repo 掃描 PASS — PASS
+15. 行程分頁 innerText 英文鍵殘留＝0；提示行皆純中文 — PASS
+16. `git status --porcelain` 輸出為空（全部已 WIP commit）；diff 清單＝css/style.css、js/trip-tab.js、js/version.js、sw.js、qa_smoke_test.py、specs/（INDEX／STATE／Task32 四檔） — PASS
+17. 未匯入公開段 6 列、第 5 列「樂桃報到提醒」、innerHTML＝v28 — PASS
+18. 匯入 §6 範例＋§1 假航班 → 6 列；第 5 列 `假航空報到提醒／假資料：起飛前 2 小時抵達第 9 航廈`；innerText 無「樂桃」；其餘 5 列 outerHTML 與 v28 逐字相同（含 `tel:110` 等連結）；不重開即生效 — PASS
+19. 清除 → 6 列、第 5 列樂桃報到提醒原文、整段 innerHTML＝v28 — PASS
+20. 只 match → 5 列無樂桃；`"x"`、`[1,null]`、`[{match:"樂桃"}]`、`[{match:""}]` → 6 列 innerHTML＝v28；`label:5,value:null` → 視同隱藏；match 前後空白命中；帶 tel → `a[href="tel:0000-111-222"]`；取代字串 XSS → img＝0 文字顯示 — PASS
+21. 6 標籤全隱藏 → `<ul class="trip-important-list"></ul>` 空清單、無「緊急電話資料載入失敗」；本機資料段（假保險／FAKE00）與民宿資訊（假民宿）照常 — PASS
+
+另：§3 init 首繪（直接寫 localStorage 後 reload）航班／總覽主題／Day1／公開段皆依碼渲染 — PASS；邊界「公開層 flights 缺載但本機有效」仍顯示本機航班、無載入失敗 — PASS。
+
+## 390px 視口（frontend 留驗）
+- 航班提示行：left 12／right 378（視口 390）、scrollWidth＝clientWidth＝366、單行、bottom 103 < 首卡 top 117；`font-size` 15px（`--fs-sm`）、`document.scrollWidth`＝390 無橫向捲動 — PASS
+- 單日層提示行：right 378、不溢出、bottom＝首項 top（不重疊） — PASS
+- 截圖：scratchpad `shot-flights-390.png`、`shot-day4-390.png`。
+
+## 迴歸（impact.md 清單）
+- 地圖分頁 10/25 日期頭主題字＝「歸途」（匯入 theme 假主題狀態下） — PASS
+- Task10 前後天／首末日 disabled／返回總覽（匯入狀態：Day4 有提示、Day3 無） — PASS
+- 匯出區顯示、碼 `TT1.` 開頭、文案不變；Task21 民宿清除後即時重繪 — PASS
+- 匯入／清除時藥丸與視圖不被重設 — PASS（判準 11）
+
+## Non-scope 越界檢查
+- 未動 `index.html`、`js/import-data.js`、`js/tripdata.js`、`js/mapdata.js`、`行前檢查清單.md`；CSS 只新增 9 行 `.trip-override-hint` 節（置於 `.trip-flight-note` 之後，注解不含 Task21 字樣）；冒煙既有斷言未放寬。— 無越界
+
+## 結論
+判準 1–21 全綠，迴歸全綠，QA 退回 0 輪（本 Task 無 qa_history）。交 PM 閉環。
