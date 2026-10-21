@@ -4,8 +4,9 @@
 
 ## 0. 先判別：本機還是雲端（最優先）
 
-- **讀得到** `C:\Users\chin3\OneDrive\my-agent\000_Agent\context\BOOTSTRAP.md` ＝ 在 Olina 電腦上：照該處完整多 agent pipeline（PM→SA→實作→QA）與 `specs/` 信號檔接力。**本檔第 3 節「雲端精簡流程」與「不建 sentinel」在本機一律不適用**；本檔其他規則（版號、個資、冒煙）仍有效。
-- **讀不到** ＝ 雲端 session（手機 Claude App 等，只看得到本 repo）：照本檔第 3 節精簡流程。
+- **讀得到** `C:\Users\chin3\OneDrive\my-agent\000_Agent\context\BOOTSTRAP.md` ＝ 在 Olina 電腦上（本機）。
+- **讀不到** ＝ 雲端 session（手機 Claude App 等，只看得到本 repo）。
+- **兩者跑同一套多 agent pipeline**（第 3 節）。差異只剩：(a) 本 repo 的 pipeline 規則以 repo 內協定為準（讀得到 my-agent 時亦同，上游只供同步）；(b) 雲端多「每次交接 WIP commit＋push」與「閉環後開 PR」兩步。
 
 ## 1. 語言與溝通
 
@@ -16,18 +17,16 @@
 1. `specs/STATE.md`：現況、進行中、待辦、上次交接。
 2. `specs/INDEX.md`：技術棧拍板、角色對應、Task Roadmap。新任務編號＝Roadmap 最大 TaskN＋1。
 3. `specs/SYSTEM_MAP.md`：檔案與依賴。檔很大，用搜尋找相關段，不要整份讀。
+4. `specs/PIPELINE.md`：pipeline 協定（信號檔、修復迴圈、閉環清單、本機／雲端差異）。
+5. 雲端另加：先 `git fetch`，查 `git branch -r --no-merged origin/main`；有未合併的 `claude/*` 分支就 checkout 它、掃 `specs/` 殘留信號、從斷點接續，不開新 Task。
 
-## 3. 雲端精簡流程（僅雲端）
+## 3. 多 agent pipeline（本機與雲端同一套）
 
-同一個 session 依序扮演 PM→實作→QA，**留痕不省**：
-
-1. 先寫 `specs/TaskN.spec.md`，最少含：功能描述、Olina 原話、影響範圍（取代獨立的 impact 檔）、不在本次範圍、驗收判準。
-2. 實作。新 spec／新資料檔要加進 `qa_smoke_test.py` 的隱私掃描清單 `scan_files`。
-3. 跑冒煙全綠（第 4 節）。冒煙全綠即視同 QA 通過，Olina 驗收在流程外。
-4. 更新 `specs/INDEX.md`（狀態欄註明「雲端精簡流程」）、`DEVELOPMENT_LOG.md`、`specs/STATE.md`。
-5. 全部放進同一個 PR（第 7 節）。
-
-**雲端不建任何 sentinel 信號檔**（ready／sa_done／done／tested 等）：那是多 agent 接力用的，單一 session 建了只會變殘檔。回電腦後不必補跑完整 pipeline。
+- 主 session 只當 router：不自己寫 spec、實作或測試，依 `specs/` 的信號檔（sentinel）依序派 `pm` → `sa` → `backend` →（含 UI 才派 `frontend`）→ `qa` → `pm` 閉環。角色定義在 `.claude/agents/`，流程與信號檔規則在 `specs/PIPELINE.md`。
+- 需求不分大小都走 pipeline：PM 寫 `specs/TaskN.spec.md`、SA 寫影響範圍（`TaskN.impact.md`）、backend 把新 spec／新資料檔加進 `qa_smoke_test.py` 的隱私掃描清單 `scan_files`、QA 實跑冒煙並留證據。
+- 只有業務判斷才停下問 Olina；「為什麼 X 還在／沒生效」類問題先走 `specs/PIPELINE.md` 的診斷前置。
+- 雲端：每次信號交接後立即 WIP commit＋push 到當前 `claude/*` 分支（信號隨分支入 git，閉環時刪光）；PM 閉環後才開 PR。WIP 與閉環都在同一個 PR。
+- 退路（模型不可用、subagent 載入失敗）見 `specs/PIPELINE.md` 第 8 節。
 
 ## 4. 冒煙測試
 

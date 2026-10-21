@@ -248,7 +248,17 @@ scan_files = [
     'specs/STATE.md',
     'specs/Task30.spec.md',
     'specs/Task30.impact.md',
+    # Task31 additive（spec §4-8；存在性由 T31-8 自檢，SA B4）
+    'specs/PIPELINE.md',
+    'specs/Task31.spec.md',
+    'specs/Task31.impact.md',
+    '.claude/agents/pm.md',
+    '.claude/agents/sa.md',
+    '.claude/agents/backend.md',
+    '.claude/agents/frontend.md',
+    '.claude/agents/qa.md',
 ]
+T31_SCAN_ADDED = scan_files[-8:]
 
 # 可疑模式：看起來像真實 WiFi 密碼（8+ 位混合大小寫數字，且非 TEST/testpassword 開頭）
 suspicious_pw = re.compile(r'(?:password|密碼)\s*[=:]\s*["\']([A-Za-z0-9@#!$%^&*]{8,})["\']')
@@ -880,6 +890,130 @@ for name, txt in (('CLAUDE.md', t30_claude), ('specs/STATE.md', t30_state)):
         fail(f'T30-9：{name} 含 Liquid 樣板開頭符號（會擋 Pages 建置）', str(hits))
     else:
         ok(f'T30-9：{name} 無 Liquid 樣板開頭符號')
+
+# ────────────────────────────────────────────────────────────────
+# Task31：repo 版五角色 .claude/agents/ ＋ specs/PIPELINE.md ＋ CLAUDE.md 改寫
+# T31-7 本機限定：讀不到使用者層 agents（雲端）印 SKIP、不計 PASS/FAIL ⇒ 本機與雲端 PASS 差 5。
+# 模擬雲端：設環境變數 T31_SIMULATE_CLOUD=1（只影響 T31-7；未設時行為與正式一致）
+# ────────────────────────────────────────────────────────────────
+print('\n[Task31：repo 版 agents／PIPELINE.md／CLAUDE.md]')
+
+T31_ROLES = ['pm', 'sa', 'backend', 'frontend', 'qa']
+T31_PIPELINE_MAX = 20000
+T31_PIPELINE_KW = [
+    ('.ready', '.ready'), ('.sa_done', '.sa_done'), ('.backend_done', '.backend_done'),
+    ('.done', 'TaskN.done'),  # `.done` 是 `.sa_done` 子字串，改驗 TaskN.done 才有意義（SA B7）
+    ('.tested', '.tested'), ('.qa_failed.md', '.qa_failed.md'), ('qa_history', 'qa_history'),
+    ('diagnosis_approved', 'diagnosis_approved'), ('QA 退回：', 'QA 退回：'),
+    ('claude/', 'claude/'), ('router', 'router'), ('同步規則', '同步規則'),
+]
+T31_CLAUDE_MUST = ['.claude/agents', 'specs/PIPELINE.md', 'router']
+T31_CLAUDE_BANNED = ['雲端精簡流程', '不建 sentinel', '雲端不建']
+
+def t31_frontmatter(txt):
+    m = re.match(r'^---\r?\n(.*?)\r?\n---\r?\n', txt, flags=re.S)
+    if not m:
+        return None
+    fm = {}
+    for line in m.group(1).splitlines():
+        mm = re.match(r'^([A-Za-z_]+):\s*(.*)$', line)
+        if mm:
+            fm[mm.group(1)] = mm.group(2).strip()
+    return fm
+
+t31_agents = {}
+for role in T31_ROLES:
+    rel = f'.claude/agents/{role}.md'
+    if os.path.isfile(os.path.join(REPO, rel)):
+        t31_agents[role] = read(rel)
+        ok(f'T31-1：{rel} 存在')
+    else:
+        fail(f'T31-1：{rel} 不存在')
+
+for role, txt in t31_agents.items():
+    fm = t31_frontmatter(txt)
+    if fm is None:
+        fail(f'T31-2：{role}.md 無 frontmatter')
+    elif fm.get('name') != role or not fm.get('model') or 'description' not in fm:
+        fail(f'T31-2：{role}.md frontmatter 不符（name＝檔名、model 非空、有 description）',
+             f'name={fm.get("name")!r} model={fm.get("model")!r} description={"有" if "description" in fm else "缺"}')
+    else:
+        ok(f'T31-2：{role}.md frontmatter name={role}、model={fm["model"]}、有 description')
+
+for role, txt in t31_agents.items():
+    miss = [k for k in ('specs/PIPELINE.md', '同步規則') if k not in txt]
+    if miss:
+        fail(f'T31-3：{role}.md 缺', '、'.join(miss))
+    else:
+        ok(f'T31-3：{role}.md 含 specs/PIPELINE.md 與 同步規則')
+
+t31_pipeline = None
+if os.path.isfile(os.path.join(REPO, 'specs/PIPELINE.md')):
+    t31_pipeline = read('specs/PIPELINE.md')
+    ok('T31-4：specs/PIPELINE.md 存在')
+    if len(t31_pipeline) <= T31_PIPELINE_MAX:
+        ok(f'T31-4：specs/PIPELINE.md {len(t31_pipeline)} 字元 ≤ {T31_PIPELINE_MAX}')
+    else:
+        fail('T31-4：specs/PIPELINE.md 超過字元上限', f'{len(t31_pipeline)} > {T31_PIPELINE_MAX}')
+    for label, kw in T31_PIPELINE_KW:
+        shown = label if label == kw else f'{label}（以 {kw} 驗）'
+        if kw in t31_pipeline:
+            ok(f'T31-4：PIPELINE.md 含「{shown}」')
+        else:
+            fail(f'T31-4：PIPELINE.md 缺關鍵字「{shown}」')
+else:
+    fail('T31-4：specs/PIPELINE.md 不存在')
+
+if t30_claude is not None:
+    for kw in T31_CLAUDE_MUST:
+        if kw in t30_claude:
+            ok(f'T31-5：CLAUDE.md 含「{kw}」')
+        else:
+            fail(f'T31-5：CLAUDE.md 缺「{kw}」')
+    for kw in T31_CLAUDE_BANNED:
+        if kw in t30_claude:
+            fail(f'T31-5：CLAUDE.md 仍含禁字「{kw}」')
+        else:
+            ok(f'T31-5：CLAUDE.md 不含「{kw}」')
+
+t31_liquid_targets = [('specs/PIPELINE.md', t31_pipeline)] + \
+    [(f'.claude/agents/{r}.md', t31_agents.get(r)) for r in T31_ROLES]
+for name, txt in t31_liquid_targets:
+    if txt is None:
+        continue
+    hits = [s for s in T30_LIQUID if s in txt]
+    if hits:
+        fail(f'T31-6：{name} 含 Liquid 樣板開頭符號', str(hits))
+    else:
+        ok(f'T31-6：{name} 無 Liquid 樣板開頭符號')
+
+# T31-7（本機限定）：使用者層 agents 的 model 與 repo 版逐檔相等
+t31_user_dir = os.path.expanduser('~/.claude/agents')
+t31_user_any = any(os.path.isfile(os.path.join(t31_user_dir, f'{r}.md')) for r in T31_ROLES)
+if os.environ.get('T31_SIMULATE_CLOUD') == '1' or not t31_user_any:
+    why = '模擬雲端（T31_SIMULATE_CLOUD=1）' if os.environ.get('T31_SIMULATE_CLOUD') == '1' else '讀不到使用者層 agents'
+    print(f'  SKIP  T31-7：{why}，model 比對不計入 PASS/FAIL（5 條）')
+else:
+    for role in T31_ROLES:
+        up_path = os.path.join(t31_user_dir, f'{role}.md')
+        if not os.path.isfile(up_path):
+            fail(f'T31-7：使用者層 {role}.md 不存在', up_path)
+            continue
+        with open(up_path, encoding='utf-8') as fh:
+            up_fm = t31_frontmatter(fh.read()) or {}
+        repo_fm = t31_frontmatter(t31_agents.get(role, '')) or {}
+        if up_fm.get('model') and up_fm.get('model') == repo_fm.get('model'):
+            ok(f'T31-7：{role} model 與使用者層相等（{up_fm["model"]}）')
+        else:
+            fail(f'T31-7：{role} model 與使用者層不符',
+                 f'repo={repo_fm.get("model")!r} 使用者層={up_fm.get("model")!r}')
+
+# T31-8：scan_files 本輪新增 8 檔皆存在（scan 迴圈缺檔靜默 continue，路徑打錯＝假陰性，SA B4）
+t31_missing = [f for f in T31_SCAN_ADDED if not os.path.isfile(os.path.join(REPO, f))]
+if t31_missing:
+    fail('T31-8：scan_files 新增檔不存在', '、'.join(t31_missing))
+else:
+    ok(f'T31-8：scan_files 本輪新增 {len(T31_SCAN_ADDED)} 檔皆存在')
 
 # ────────────────────────────────────────────────────────────────
 # 結果彙總

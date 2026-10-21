@@ -6,18 +6,19 @@
 ## Current Status
 
 - Updated: 2026-10-21
-- Updated by: PM（Task30 閉環）
-- 線上 v28 · 10/19（GitHub Pages）；main＝origin/main 含 Task30。
-- 錨定檔：`specs/INDEX.md`；雲端 session 入口：repo 根 `CLAUDE.md`。
+- Updated by: PM（Task31 閉環）
+- 線上 v28 · 10/19（GitHub Pages）；main＝origin/main 含 Task31。
+- 錨定檔：`specs/INDEX.md`；session 入口：repo 根 `CLAUDE.md`；流程：`specs/PIPELINE.md`＋`.claude/agents/` 五角色（本機與雲端同一套）。
 
 ## In Progress
 
-- 10/22～10/25 旅程中：期間改動走手機雲端 session（規則見 `CLAUDE.md`），一律以 `claude/*` 分支＋PR 進 main，Olina 說上線才 Merge。
+- 10/22～10/25 旅程中：改動走手機雲端 session，照完整 pipeline（主 session 只當 router，PM→SA→backend→(frontend)→QA→PM），每次信號交接 WIP commit＋push `claude/*` 分支，閉環後開 PR，Olina 說「合併／上線」才 Merge；規則見 `specs/PIPELINE.md` 第 8 節。
 
 ## Open Items
 
+- Olina 手機雲端實測 Task32（`specs/Task31.spec.md`「給 Olina 的手機實測」實測句 2：`行前檢查清單.md` 末加一行「雲端 pipeline 實測通過（10/21）」並走完整 pipeline）。**結案條件**：origin/main 上 `行前檢查清單.md` 含「雲端 pipeline 實測通過」、`specs/Task32.spec.md` 存在、`DEVELOPMENT_LOG.md` 有「Task32 閉環」行，且 `git ls-tree -r --name-only origin/main specs` 無任何 `Task32.(ready|sa_done|backend_done|done|tested)`。
 - 回到電腦後同步本機：`git pull`，並確認沒有遺留的雲端分支／PR。**結案條件**：本機 `git status -sb` 顯示 main 與 origin/main 同步；`git branch -r --no-merged origin/main` 無 `origin/claude/*`；GitHub 上 `Olina3221/tokyo-trip` 無 open PR（`gh pr list --state open` 為空）。
 
 ## Last Handoff
 
-- 2026-10-21 Task30 閉環（QA 1 輪 PASS）：雲端入口 `CLAUDE.md`＋本檔＋冒煙 T30；本機提「東京」即自動注入本檔；詳見 `DEVELOPMENT_LOG.md`。
+- 2026-10-21 Task31 閉環（QA 1 輪 PASS，本機 174/0、模擬雲端 169/0）：本機與雲端同一套 pipeline（repo 版 `.claude/agents/`＋`specs/PIPELINE.md`），取代 Task30 精簡流程；詳見 `DEVELOPMENT_LOG.md`。
