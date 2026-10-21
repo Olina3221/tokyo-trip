@@ -248,6 +248,10 @@ scan_files = [
     'specs/STATE.md',
     'specs/Task30.spec.md',
     'specs/Task30.impact.md',
+    # Task32 additive（SA 注意事項 11：插在 Task31 區塊之前，T31_SCAN_ADDED 仍指原 8 檔；存在性由 T32-1 自檢）
+    'specs/Task32.spec.md',
+    'specs/Task32.impact.md',
+    'specs/Task32.api.md',
     # Task31 additive（spec §4-8；存在性由 T31-8 自檢，SA B4）
     'specs/PIPELINE.md',
     'specs/Task31.spec.md',
@@ -1014,6 +1018,90 @@ if t31_missing:
     fail('T31-8：scan_files 新增檔不存在', '、'.join(t31_missing))
 else:
     ok(f'T31-8：scan_files 本輪新增 {len(T31_SCAN_ADDED)} 檔皆存在')
+
+# ────────────────────────────────────────────────────────────────
+# Task32：匯入碼 flights／itineraryDays／importantOverrides 覆蓋
+# ────────────────────────────────────────────────────────────────
+print('\n[Task32 匯入覆蓋]')
+
+# T32-1：scan_files 的 Task32 三檔皆存在（scan 迴圈缺檔靜默 continue）
+T32_SCAN_ADDED = ['specs/Task32.spec.md', 'specs/Task32.impact.md', 'specs/Task32.api.md']
+t32_not_listed = [f for f in T32_SCAN_ADDED if f not in scan_files]
+t32_missing = [f for f in T32_SCAN_ADDED if not os.path.isfile(os.path.join(REPO, f))]
+if t32_not_listed:
+    fail('T32-1：scan_files 缺 Task32 檔', '、'.join(t32_not_listed))
+elif t32_missing:
+    fail('T32-1：scan_files 的 Task32 檔不存在', '、'.join(t32_missing))
+elif any(f in T31_SCAN_ADDED for f in T32_SCAN_ADDED):
+    fail('T32-1：Task32 檔落入 T31_SCAN_ADDED 範圍（應插在 Task31 區塊之前）')
+else:
+    ok('T32-1：scan_files 含 Task32 三檔且皆存在，T31_SCAN_ADDED 未被擠動')
+
+# T32-2：兩句覆蓋提示文案逐字、提示行 class
+for t32_txt in ['以下為你匯入的航班', '本日行程依你匯入的資料顯示']:
+    if f"_buildOverrideHint('{t32_txt}')" in trip_tab:
+        ok(f'T32-2：trip-tab.js 含提示文案「{t32_txt}」')
+    else:
+        fail(f'T32-2：trip-tab.js 缺提示文案「{t32_txt}」')
+if "p.className = 'trip-override-hint'" in trip_tab:
+    ok('T32-2：提示行 class trip-override-hint')
+else:
+    fail('T32-2：提示行 class trip-override-hint 不存在')
+
+# T32-3：包裝重繪函式體含三個新渲染呼叫，且在 clearBtn／confirmBtn 兩處 _renderLodgingBlock() 之後各呼叫一次
+m32 = re.search(r'function _renderImportOverrides\(\)\s*\{(.*?)\n  \}', trip_tab, re.DOTALL)
+if not m32:
+    fail('T32-3：找不到 function _renderImportOverrides()')
+else:
+    t32_body = m32.group(1)
+    t32_need = ['_renderFlights()', '_renderItineraryOverride()', '_renderImportantPublic()']
+    t32_lack = [c for c in t32_need if c not in t32_body]
+    if t32_lack:
+        fail('T32-3：_renderImportOverrides 函式體缺呼叫', '、'.join(t32_lack))
+    else:
+        ok('T32-3：_renderImportOverrides 函式體含航班／行程／重要資料公開段三個重繪')
+t32_calls = len(re.findall(r'_renderImportOverrides\(\);', trip_tab))
+if t32_calls == 2:
+    ok('T32-3：_renderImportOverrides() 恰被呼叫 2 次')
+else:
+    fail('T32-3：_renderImportOverrides() 呼叫次數異常', f'預期 2，實際 {t32_calls}')
+for t32_label, t32_pat in [
+    ('clearBtn', r'App\.privateData\.clear\(\);\s*_renderPrivateSection\(\);[^\n]*\n\s*_renderLodgingBlock\(\);\s*_renderImportOverrides\(\);'),
+    ('confirmBtn', r'result\.ok.*?_renderPrivateSection\(\);[^\n]*\n\s*_renderLodgingBlock\(\);\s*_renderImportOverrides\(\);'),
+]:
+    if re.search(t32_pat, trip_tab, re.DOTALL):
+        ok(f'T32-3：{t32_label} 於 _renderLodgingBlock() 之後呼叫 _renderImportOverrides()')
+    else:
+        fail(f'T32-3：{t32_label} 未於 _renderLodgingBlock() 之後呼叫 _renderImportOverrides()')
+
+# T32-4：不得 mutate window.TRIP（不得對 flights／itinerary／important 賦值或 splice/push）
+t32_mut = re.findall(r'(?:window\.TRIP|data|_itinData|_flightsPublic|_importantPublicData)'
+                     r'(?:\.(?:flights|itinerary|important))?(?:\[[^\]]*\])?\.(?:items|theme|label|value|tel)\s*=(?!=)'
+                     r'|(?:_itinData|_flightsPublic|_importantPublicData)\.(?:push|splice|pop|shift|unshift)\(', trip_tab)
+if t32_mut:
+    fail('T32-4：trip-tab.js 疑似 mutate 公開層資料', '、'.join(t32_mut))
+else:
+    ok('T32-4：trip-tab.js 無 mutate 公開層資料的寫法')
+
+# T32-5：本機層讀取集中 helper（isAvailable＋get＋try/catch）
+m32h = re.search(r'function _getPrivateObj\(\)\s*\{(.*?)\n  \}', trip_tab, re.DOTALL)
+if m32h and all(k in m32h.group(1) for k in ['isAvailable()', '.get()', 'try', 'catch']):
+    ok('T32-5：_getPrivateObj 含 isAvailable／get／try-catch 防禦')
+else:
+    fail('T32-5：_getPrivateObj 缺失或防禦不全')
+
+# T32-6：航班早退改寫——公開層與本機層皆無效才顯示載入失敗
+m32f = re.search(r'function buildFlightsSection\(data\)\s*\{(.*?)\n  \}', trip_tab, re.DOTALL)
+if m32f and '航班資料載入失敗' not in m32f.group(1) and '_renderFlights()' in m32f.group(1):
+    ok('T32-6：buildFlightsSection 不再早退，交由 _renderFlights 判斷')
+else:
+    fail('T32-6：buildFlightsSection 仍有早退或未呼叫 _renderFlights')
+
+# T32-7：css/style.css 提示行樣式（frontend 交付；未完成時 SKIP，不計入 PASS）
+if re.search(r'\.trip-override-hint\s*[,{]', style_css):
+    ok('T32-7：css/style.css 含 .trip-override-hint 樣式')
+else:
+    print('  SKIP  T32-7：css/style.css 尚無 .trip-override-hint（frontend 待完成；QA 時必須 PASS）')
 
 # ────────────────────────────────────────────────────────────────
 # 結果彙總

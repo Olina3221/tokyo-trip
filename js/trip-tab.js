@@ -29,6 +29,109 @@
   var _itinOverviewEl = null; // .trip-itin-overview 元素
   var _itinDayEl = null;      // .trip-itin-day 元素（進入時整段重繪）
 
+  // Task32 匯入覆蓋（flights／itineraryDays／importantOverrides）
+  var _flightsSecEl = null;        // 航班 section（重繪只換子節點，不動 hidden）
+  var _flightsPublic = null;       // window.TRIP.flights 參照（唯讀，不 mutate）
+  var _importantPublicEl = null;   // 重要資料公開段 wrap（可重繪）
+  var _importantPublicData = null; // window.TRIP.important 參照（唯讀，不 mutate）
+
+  // ── Task32 本機層讀取（集中 helper，失敗一律回 null）──────────
+
+  function _isPlainObj(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function _str(v) {
+    return typeof v === 'string' ? v : '';
+  }
+
+  function _getPrivateObj() {
+    try {
+      var pd = window.App && App.privateData;
+      if (!pd || typeof pd.isAvailable !== 'function' || typeof pd.get !== 'function') return null;
+      if (!pd.isAvailable()) return null;
+      var obj = pd.get();
+      return _isPlainObj(obj) ? obj : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 有效航班：本機層 flights 有效（陣列且至少 1 個物件元素）→ 整組取代；否則退公開層
+  // 回傳 { list, overridden }；皆無效時 list 為 null
+  function _getEffectiveFlights() {
+    var priv = _getPrivateObj();
+    if (priv && Array.isArray(priv.flights)) {
+      var own = priv.flights.filter(_isPlainObj);
+      if (own.length > 0) return { list: own, overridden: true };
+    }
+    if (Array.isArray(_flightsPublic) && _flightsPublic.length) {
+      return { list: _flightsPublic, overridden: false };
+    }
+    return { list: null, overridden: false };
+  }
+
+  // 有效單日：以 isoDate 對公開層，同 isoDate 取第一筆有效者；回傳新物件，不 mutate _itinData
+  function _getEffectiveDay(dayIdx) {
+    var base = _itinData[dayIdx];
+    var eff = { day: base.day, isoDate: base.isoDate, theme: base.theme, items: base.items || [], overridden: false };
+    if (!base.isoDate) return eff;
+    var priv = _getPrivateObj();
+    if (!priv || !Array.isArray(priv.itineraryDays)) return eff;
+    for (var i = 0; i < priv.itineraryDays.length; i++) {
+      var d = priv.itineraryDays[i];
+      if (!_isPlainObj(d) || typeof d.isoDate !== 'string' || !Array.isArray(d.items)) continue;
+      if (d.isoDate !== base.isoDate) continue;
+      eff.items = d.items.filter(_isPlainObj);
+      if (typeof d.theme === 'string' && d.theme !== '') eff.theme = d.theme;
+      eff.overridden = true;
+      return eff;
+    }
+    return eff;
+  }
+
+  // 有效重要資料公開列：依 importantOverrides 原位取代／隱藏；回傳新陣列，不 mutate 原陣列
+  function _getEffectiveImportant(list) {
+    var priv = _getPrivateObj();
+    var ovs = [];
+    if (priv && Array.isArray(priv.importantOverrides)) {
+      ovs = priv.importantOverrides.filter(function (o) {
+        return _isPlainObj(o) && typeof o.match === 'string' && o.match.trim() !== '';
+      });
+    }
+    if (!ovs.length) return list;
+    var out = [];
+    list.forEach(function (item) {
+      var key = String((item && item.label) || '').trim();
+      var hit = null;
+      for (var i = 0; i < ovs.length; i++) {
+        if (ovs[i].match.trim() === key) { hit = ovs[i]; break; }
+      }
+      if (!hit) { out.push(item); return; }
+      var lab = _str(hit.label), val = _str(hit.value);
+      if (lab === '' && val === '') return; // 隱藏
+      var rep = { label: lab, value: val };
+      if (_str(hit.tel) !== '') rep.tel = hit.tel;
+      out.push(rep);
+    });
+    return out;
+  }
+
+  // 覆蓋提示行（class 交 frontend 加樣式）
+  function _buildOverrideHint(text) {
+    var p = document.createElement('p');
+    p.className = 'trip-override-hint';
+    p.textContent = text;
+    return p;
+  }
+
+  // 匯入／清除後重繪三個 Task32 覆蓋目標（呼叫點：clearBtn、confirmBtn 的 _renderLodgingBlock 之後）
+  function _renderImportOverrides() {
+    _renderFlights();
+    _renderItineraryOverride();
+    _renderImportantPublic();
+  }
+
   // ── 日期工具 ────────────────────────────────────────────────
 
   function getTodayIsoDate() {
@@ -109,7 +212,7 @@
 
   function _renderDayContent(dayIdx) {
     if (!_itinData || dayIdx < 0 || dayIdx >= _itinData.length) return;
-    var dayObj = _itinData[dayIdx];
+    var dayObj = _getEffectiveDay(dayIdx); // Task32：有效單日（新物件）
     var N = _itinData.length;
 
     _itinDayEl.innerHTML = '';
@@ -185,6 +288,10 @@
     var content = document.createElement('div');
     content.className = 'trip-itin-day-content';
 
+    if (dayObj.overridden) {
+      content.appendChild(_buildOverrideHint('本日行程依你匯入的資料顯示'));
+    }
+
     var items = dayObj.items || [];
     if (items.length === 0) {
       var emptyP = document.createElement('p');
@@ -199,15 +306,15 @@
 
         var timeEl = document.createElement('span');
         timeEl.className = 'trip-item-time';
-        timeEl.textContent = item.time || '';
+        timeEl.textContent = _str(item.time);
         row.appendChild(timeEl);
 
         var titleEl = document.createElement('span');
         titleEl.className = 'trip-item-title';
-        titleEl.textContent = item.title || '';
+        titleEl.textContent = _str(item.title);
         row.appendChild(titleEl);
 
-        if (item.detail) {
+        if (_str(item.detail)) {
           var detailEl = document.createElement('div');
           detailEl.className = 'trip-item-detail';
           // detail 直接完整顯示（不 hidden），\n → <br>
@@ -220,6 +327,20 @@
     }
 
     _itinDayEl.appendChild(content);
+  }
+
+  // ── Task32：行程覆蓋重繪（總覽主題字＋目前開著的單日層；不切視圖、不捲動）──
+
+  function _renderItineraryOverride() {
+    if (!_itinOverviewEl || !_itinData) return;
+    var cards = _itinOverviewEl.querySelectorAll('.trip-ov-card');
+    for (var i = 0; i < cards.length; i++) {
+      var idx = parseInt(cards[i].dataset.dayIdx, 10);
+      if (isNaN(idx) || idx < 0 || idx >= _itinData.length) continue;
+      var themeEl = cards[i].querySelector('.trip-ov-day-theme');
+      if (themeEl) themeEl.textContent = _getEffectiveDay(idx).theme || '';
+    }
+    if (typeof _itinView === 'number') _renderDayContent(_itinView);
   }
 
   // ── 渲染：行程區塊（Task10 R2 重構為兩層視圖）──────────────────
@@ -263,7 +384,7 @@
 
       var themeEl = document.createElement('div');
       themeEl.className = 'trip-ov-day-theme';
-      themeEl.textContent = dayObj.theme || '';
+      themeEl.textContent = _getEffectiveDay(idx).theme || ''; // Task32：有效 theme
 
       card.appendChild(labelEl);
       card.appendChild(dateEl);
@@ -314,45 +435,74 @@
     sec.id = 'trip-sec-flights';
     sec.hidden = true;
 
-    if (!data || !data.flights || !data.flights.length) {
+    _flightsSecEl = sec;
+    _flightsPublic = (data && Array.isArray(data.flights)) ? data.flights : null;
+    _renderFlights(); // init 首繪（依當下本機層）
+
+    return sec;
+  }
+
+  // Task32：航班區渲染（可重繪；保留 sec、只換子節點、不動 hidden）
+  // 公開層與本機層皆無效才顯示載入失敗（公開層掛了仍看得到本機航班）
+  function _renderFlights() {
+    var sec = _flightsSecEl;
+    if (!sec) return;
+    sec.innerHTML = '';
+
+    var eff = _getEffectiveFlights();
+    if (!eff.list) {
       sec.innerHTML = '<p class="trip-error">航班資料載入失敗</p>';
-      return sec;
+      return;
     }
 
-    data.flights.forEach(function (f) {
+    if (eff.overridden) {
+      sec.appendChild(_buildOverrideHint('以下為你匯入的航班'));
+    }
+
+    eff.list.forEach(function (f) {
+      if (!_isPlainObj(f)) return;
       var card = document.createElement('div');
       card.className = 'trip-flight-card';
 
-      var fromStr = f.from
-        ? escHtml(f.from.airport) + ' ' + escHtml(f.from.terminal) + '&nbsp;&nbsp;' + escHtml(f.from.time)
-        : escHtml(String(f.from || ''));
-      var toStr = f.to
-        ? escHtml(f.to.airport) + ' ' + escHtml(f.to.terminal) + '&nbsp;&nbsp;' + escHtml(f.to.time)
-        : escHtml(String(f.to || ''));
+      // 缺欄位防禦：非字串→空字串；from/to 非物件視同未提供
+      var from = _isPlainObj(f.from) ? f.from : {};
+      var to   = _isPlainObj(f.to)   ? f.to   : {};
+      var hasFrom = !!(_str(from.airport) || _str(from.terminal) || _str(from.time));
+      var hasTo   = !!(_str(to.airport)   || _str(to.terminal)   || _str(to.time));
+      var hasInfo = !!(_str(f.airline) || _str(f.flightNo) || _str(f.date));
+
+      var fromStr = hasFrom
+        ? escHtml(_str(from.airport)) + ' ' + escHtml(_str(from.terminal)) + '&nbsp;&nbsp;' + escHtml(_str(from.time))
+        : '';
+      var toStr = hasTo
+        ? escHtml(_str(to.airport)) + ' ' + escHtml(_str(to.terminal)) + '&nbsp;&nbsp;' + escHtml(_str(to.time))
+        : '';
 
       card.innerHTML =
-        '<div class="trip-flight-label">' + escHtml(f.label || '') + '</div>' +
-        '<div class="trip-flight-info">' +
-          '<span class="trip-flight-no">' + escHtml(f.airline || '') + '&nbsp;' + escHtml(f.flightNo || '') + '</span>' +
-          '<span class="trip-flight-date">' + escHtml(f.date || '') + '</span>' +
-        '</div>' +
-        '<div class="trip-flight-route">' +
-          '<div class="trip-flight-from">' +
-            '<span class="trip-flight-arrow-label">出發</span>' +
-            '<span class="trip-flight-endpoint">' + fromStr + '</span>' +
-          '</div>' +
-          '<div class="trip-flight-arrow">→</div>' +
-          '<div class="trip-flight-to">' +
-            '<span class="trip-flight-arrow-label">抵達</span>' +
-            '<span class="trip-flight-endpoint">' + toStr + '</span>' +
-          '</div>' +
-        '</div>' +
-        (f.note ? '<div class="trip-flight-note">' + escHtml(f.note) + '</div>' : '');
+        '<div class="trip-flight-label">' + escHtml(_str(f.label)) + '</div>' +
+        (hasInfo
+          ? '<div class="trip-flight-info">' +
+              '<span class="trip-flight-no">' + escHtml(_str(f.airline)) + '&nbsp;' + escHtml(_str(f.flightNo)) + '</span>' +
+              '<span class="trip-flight-date">' + escHtml(_str(f.date)) + '</span>' +
+            '</div>'
+          : '') +
+        ((hasFrom || hasTo)
+          ? '<div class="trip-flight-route">' +
+              '<div class="trip-flight-from">' +
+                '<span class="trip-flight-arrow-label">出發</span>' +
+                '<span class="trip-flight-endpoint">' + fromStr + '</span>' +
+              '</div>' +
+              '<div class="trip-flight-arrow">→</div>' +
+              '<div class="trip-flight-to">' +
+                '<span class="trip-flight-arrow-label">抵達</span>' +
+                '<span class="trip-flight-endpoint">' + toStr + '</span>' +
+              '</div>' +
+            '</div>'
+          : '') +
+        (_str(f.note) ? '<div class="trip-flight-note">' + escHtml(_str(f.note)) + '</div>' : '');
 
       sec.appendChild(card);
     });
-
-    return sec;
   }
 
   // ── 渲染：飯店區塊 ──────────────────────────────────────────
@@ -708,18 +858,32 @@
     var wrap = document.createElement('div');
     wrap.className = 'trip-important-public';
 
-    if (!data || !data.important || !data.important.length) {
+    _importantPublicEl = wrap;
+    _importantPublicData = (data && Array.isArray(data.important)) ? data.important : null;
+    _renderImportantPublic(); // init 首繪（依當下本機層）
+
+    return wrap;
+  }
+
+  // Task32：重要資料公開段渲染（可重繪；依 importantOverrides 原位取代／隱藏）
+  function _renderImportantPublic() {
+    var wrap = _importantPublicEl;
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    // 載入失敗訊息只保留給公開層缺載
+    if (!_importantPublicData || !_importantPublicData.length) {
       var err = document.createElement('p');
       err.className = 'trip-error';
       err.textContent = '緊急電話資料載入失敗';
       wrap.appendChild(err);
-      return wrap;
+      return;
     }
 
     var list = document.createElement('ul');
     list.className = 'trip-important-list';
 
-    data.important.forEach(function (item) {
+    _getEffectiveImportant(_importantPublicData).forEach(function (item) {
       var li = document.createElement('li');
       li.className = 'trip-important-item';
 
@@ -745,7 +909,6 @@
     });
 
     wrap.appendChild(list);
-    return wrap;
   }
 
   // ── 渲染：本機資料段（可重繪，B6）──────────────────────────────
@@ -940,6 +1103,7 @@
       App.privateData.clear();
       _renderPrivateSection();   // Task21 呼叫點 1（clearBtn）
       _renderLodgingBlock();
+      _renderImportOverrides();  // Task32（航班＋行程＋重要資料公開段）
     });
   }
 
@@ -996,6 +1160,7 @@
         // 匯入成功：重繪本機資料段
         _renderPrivateSection();   // Task21 呼叫點 2（confirmBtn，覆蓋首次匯入＋重新匯入）
         _renderLodgingBlock();
+        _renderImportOverrides();  // Task32（航班＋行程＋重要資料公開段）
       }
     });
 
