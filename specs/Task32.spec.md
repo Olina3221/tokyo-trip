@@ -164,3 +164,45 @@
 19. **（v1.4）清除恢復**：判準 18 狀態下按清除本機資料 → 立即回到 6 列、第 5 列恢復「樂桃報到提醒」原文。
 20. **（v1.4）隱藏與無效值**：元素只有 `match:"樂桃報到提醒"` → 剩 5 列、無樂桃字樣；`importantOverrides` 為字串、`[1, null]`、`[{match:"樂桃"}]`（部分字串）、`[{match:""}]` → 6 列全同 v28；`match` 前後含空白仍命中；取代元素帶 `tel` → 該列為 `tel:` 連結；取代字串含 `<img src=x onerror=alert(1)>` → 以文字顯示、不產生 `img`。
 21. **（v1.4）全部隱藏／不影響其他段**：6 個標籤全以只有 `match` 的元素隱藏 → 公開段無列且不出現「緊急電話資料載入失敗」；本機資料段（假 `insurance`／`bookings`）與民宿資訊照常顯示。
+
+## 影響範圍分析（SA）
+
+> 2026-10-21 SA v1（依 spec v1.4）。完整內容與業務層級依賴見 `specs/Task32.impact.md`。**涉及範圍：含 UI**——backend（`js/trip-tab.js`、`js/version.js`、`sw.js`、`specs/Task32.api.md`、`qa_smoke_test.py`）→ `Task32.backend_done` → frontend（`css/style.css` 提示行樣式；`importantOverrides` 沿用既有 `.trip-important-*`，無新樣式）→ `Task32.done`。
+
+### 受影響的既有功能
+| 功能 | 頁面 / 函式 | 影響說明 | 需迴歸測試 |
+|------|------------|---------|-----------|
+| 航班藥丸 | `trip-tab.js` `buildFlightsSection` | 改走有效航班；公開層輸出須與 v28 逐字相同；早退路徑需改寫 | ✅ |
+| 行程總覽主題字 | `buildItinerarySection` | 主題字改取有效 theme，匯入／清除後就地更新 | ✅ |
+| 行程單日層 | `_renderDayContent` | 內容與 theme 改取有效單日；換天／空日不得退化 | ✅ |
+| 重要資料公開段 | `buildImportantPublicList` | 依 `importantOverrides` 原位取代／隱藏；改為可重繪；缺載訊息只留給公開層缺載 | ✅ |
+| 匯入／清除重繪 | confirmBtn、clearBtn | 新增航班＋行程＋重要資料公開段重繪（在 `_renderLodgingBlock()` 之後） | ✅ |
+| 重要資料本機段、民宿資訊 | `_renderPrivateSection`、`_renderLodgingBlock` | 不改；冒煙 M1／M4 寫死呼叫數 3 | ✅ |
+| 地圖日期頭主題字 | `map-tab.js` `findItinDay` | 唯讀公開層；不得 mutate `window.TRIP`，地圖頭維持公開 theme | ✅ |
+
+### Backend 注意事項
+- 不得 mutate `window.TRIP`（`flights`／`itinerary`／`important`）或 `_itinData`，有效資料一律組新物件／新陣列。
+- 本機層讀取集中成一個 helper（存在＋`isAvailable()`＋`get()` 為物件非陣列，外包 try/catch）。
+- 航班重繪保留原 `sec` 元素、只換子節點、不動 `sec.hidden`；早退路徑改為「公開與本機皆無效才顯示載入失敗」。
+- 缺欄位一律字串化防禦（非字串→空字串，`from`／`to` 非物件→空），公開層走同一渲染器且輸出不變。
+- 行程重繪：總覽依 `dataset.dayIdx` 更新主題字；`_itinView` 為數字時只呼叫 `_renderDayContent(_itinView)`，不呼叫 `_switchView`／`_showDayView`。theme 覆蓋＝非空字串才取代（SA 技術裁定）。
+- 重要資料公開段：保留 `wrap` 抽出 `_renderImportantPublic()` 可重繪；trim 後完全比對 `label`；`label`／`value` 任一非空＝取代（欄位全取自元素），皆空＝隱藏；`tel` 非空字串才建 `tel:` 連結；全隱藏留空 `ul`、不顯示載入失敗；無 override 時 DOM 與 v28 相同。
+- 三個新重繪建議包成一個函式，放 clearBtn／confirmBtn 的 `_renderLodgingBlock();` 之後、不入 `_renderPrivateSection()` 體；`_renderLodgingBlock()` 呼叫數維持 3。init 首繪在各自 build 函式內完成。
+- 提示行建議 class `trip-override-hint`、`textContent`、文案逐字照 §4；寫入 `Task32.api.md`。
+- `scan_files` 三個 Task32 檔插在 `# Task31 additive` 區塊之前，`T31_SCAN_ADDED` 不變；新增 T32 斷言段。冒煙無 `important` 寫死斷言（SA 已核）。
+- bump v28→v29；PRECACHE 44 不變。
+
+### Frontend 注意事項
+- 本次涉及的既有頁面：行程分頁航班藥丸與單日層。只改 `css/style.css` 加提示行樣式，用 `var(--fs-sm)` 等 token、不得硬編碼 px 字級、不低於 `--fs-xs`。
+- 新樣式節以自己的注解頭開場；放在 Task21 節之前時，注解內不得含字樣 `Task21`（冒煙 type-scale regex 會誤抓）。建議放在 `.trip-flight-note` 之後。
+- 重要資料公開段無新 class、不改 `.trip-important-*` 樣式；不改既有航班卡／單日層樣式與 `index.html`。
+
+### QA 迴歸測試清單
+- [ ] 冒煙全綠（T25 航班／行程、T27–T29、M1／M2／M4、Task21 type-scale、T31-8 照舊 PASS）
+- [ ] 未匯入：航班 2 張公開卡、Day 1～4 與總覽主題字、重要資料公開段 6 列（含 tel 連結）同 v28，無提示行
+- [ ] 行程初始視圖（今天直進單日層／否則總覽）、前後天、返回總覽正常（Task10）
+- [ ] 重要資料本機段、匯出、清除流程不變（Task3／Task20）
+- [ ] 民宿入住資訊匯入／清除即時重繪（Task21）
+- [ ] 地圖分頁日期頭主題字仍為公開 theme
+- [ ] 匯入／清除時藥丸與視圖不被重設
+- 新功能由 QA 依 spec 驗收（判準 1–21）
