@@ -12,7 +12,7 @@
 
 ## In Progress
 
-- Task32（匯入碼可帶各人航班）：分支 `claude/task32-per-person-flight`，spec 完成、建 `Task32.ready` 待 SA；`[待 Olina]` D1～D5 不擋工（已採建議預設）。
+- Task32（匯入碼可帶各人航班）：分支 `claude/task32-per-person-flight`，spec 完成、建 `Task32.ready` 待 SA；`[待 Olina]` D1～D8 不擋工（已採建議預設）。
 - 10/22～10/25 旅程中：改動走手機雲端 session，照完整 pipeline（主 session 只當 router，PM→SA→backend→(frontend)→QA→PM），每次信號交接 WIP commit＋push `claude/*` 分支，閉環後開 PR，Olina 說「合併／上線」才 Merge；規則見 `specs/PIPELINE.md` 第 8 節。
 
 ## Open Items
