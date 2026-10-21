@@ -853,6 +853,15 @@ body {
 }
 
 
+/* ── Task32 — 匯入覆蓋提示行（航班區首行／單日層首行）──────────── */
+.trip-override-hint {
+  margin: 14px 12px 0;       /* 左右對齊 .trip-flight-card */
+  font-size: var(--fs-sm);   /* ★ sm：輔助提示（不低於 --fs-xs）*/
+  color: var(--c-text-muted);
+  line-height: 1.6;
+}
+
+
 /* ── 飯店：卡片 ─────────────────────────────────────────────── */
 .trip-hotel-card {
   margin: 14px 12px 0;
